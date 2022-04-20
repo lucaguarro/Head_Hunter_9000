@@ -20,12 +20,12 @@ class Head_Hunter_9000:
 
         self.driver = webdriver.Chrome(executable_path="./chromedriver")
 
-    # def __del__(self):
-        # self.driver.close()
+    def __del__(self):
+        self.driver.close()
 
     def simulate_human_typing(self, html_input_el, desired_input):
         for letter in desired_input:
-            time.sleep(random.uniform(0.1, 0.5))
+            time.sleep(random.uniform(0.1, 0.3))
             html_input_el.send_keys(letter)
 
     def login(self):

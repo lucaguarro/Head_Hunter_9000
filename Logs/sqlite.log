@@ -1,0 +1,77 @@
+2022-04-20 14:36:50,101:sqlite:Creating and using database at path: /home/luca/Documents/Projects/Head_Hunter_9000/Selenium_Implementation / jobappstest.db
+2022-04-20 14:36:50,102:sqlite:Attempting to create sqlite schema
+2022-04-20 14:36:50,102:sqlite:Running query:  CREATE TABLE "Jobs" (
+	"Salary"	TEXT,
+	"NumEmployees"	TEXT,
+	"Location"	TEXT,
+	"Description"	TEXT,
+	"AppSubmitted"	INTEGER,
+	"JobID"	INTEGER NOT NULL UNIQUE,
+	PRIMARY KEY("JobID")
+);
+2022-04-20 14:36:50,116:sqlite:Running query:  CREATE TABLE "Questions" (
+	"Question"	TEXT NOT NULL,
+	"QuestionID"	INTEGER NOT NULL UNIQUE,
+	PRIMARY KEY("QuestionID" AUTOINCREMENT)
+);
+2022-04-20 14:36:50,125:sqlite:Running query:  CREATE TABLE "FreeResponseQuestions" (
+	"Answer"	TEXT,
+	"FreeResponseQuestionID"	INTEGER NOT NULL UNIQUE,
+	PRIMARY KEY("FreeResponseQuestionID"),
+	FOREIGN KEY("FreeResponseQuestionID") REFERENCES "Questions"("QuestionID")
+);
+2022-04-20 14:36:50,133:sqlite:Running query:  CREATE TABLE "RadioButtonsQuestions" (
+	"AnswerAsOptionID"	INTEGER,
+	"OptionSetID"	INTEGER NOT NULL,
+	"RadioButtonsQuestionID"	INTEGER NOT NULL UNIQUE,
+	FOREIGN KEY("AnswerAsOptionID") REFERENCES "Options"("OptionID"),
+	PRIMARY KEY("RadioButtonsQuestionID"),
+	FOREIGN KEY("RadioButtonsQuestionID") REFERENCES "Questions"("QuestionID"),
+	FOREIGN KEY("OptionSetID") REFERENCES "OptionSets"("OptionSetID")
+);
+2022-04-20 14:36:50,141:sqlite:Running query:  CREATE TABLE "DropDownQuestions" (
+	"AnswerAsOptionID"	INTEGER,
+	"OptionSetID"	INTEGER NOT NULL,
+	"DropDownQuestionID"	INTEGER NOT NULL UNIQUE,
+	FOREIGN KEY("AnswerAsOptionID") REFERENCES "Options"("OptionID"),
+	FOREIGN KEY("OptionSetID") REFERENCES "OptionSets"("OptionSetID"),
+	PRIMARY KEY("DropDownQuestionID"),
+	FOREIGN KEY("DropDownQuestionID") REFERENCES "Questions"("QuestionID")
+);
+2022-04-20 14:36:50,150:sqlite:Running query:  CREATE TABLE "JobQuestions" (
+	"JobID"	INTEGER NOT NULL,
+	"QuestionID"	INTEGER NOT NULL,
+	FOREIGN KEY("JobID") REFERENCES "Jobs"("JobID"),
+	FOREIGN KEY("QuestionID") REFERENCES "Questions"("QuestionID")
+);
+2022-04-20 14:36:50,158:sqlite:Running query:  CREATE TABLE "OptionSets" (
+	"OptionSetID"	INTEGER NOT NULL UNIQUE,
+	PRIMARY KEY("OptionSetID" AUTOINCREMENT)
+);
+2022-04-20 14:36:50,167:sqlite:Running query:  CREATE TABLE "Options" (
+	"OptionText"	TEXT NOT NULL,
+	"Value"	TEXT NOT NULL,
+	"OptionSetID"	INTEGER NOT NULL,
+	"OptionID"	INTEGER NOT NULL UNIQUE,
+	FOREIGN KEY("OptionSetID") REFERENCES "OptionSets"("OptionSetID"),
+	PRIMARY KEY("OptionID" AUTOINCREMENT)
+);
+2022-04-20 14:36:50,176:sqlite:Schema created successfully
+2022-04-20 14:37:00,262:sqlite:Using database at path: /home/luca/Documents/Projects/Head_Hunter_9000/Selenium_Implementation / jobappstest.db
+2022-04-20 14:37:00,262:sqlite:Checking sqlite schema
+2022-04-20 14:37:23,028:sqlite:Using database at path: /home/luca/Documents/Projects/Head_Hunter_9000/Selenium_Implementation / jobappstest.db
+2022-04-20 14:37:23,028:sqlite:Checking sqlite schema
+2022-04-20 14:37:36,924:sqlite:Using database at path: /home/luca/Documents/Projects/Head_Hunter_9000/Selenium_Implementation / jobappstest.db
+2022-04-20 14:37:36,925:sqlite:Checking sqlite schema
+2022-04-20 14:38:03,540:sqlite:Using database at path: /home/luca/Documents/Projects/Head_Hunter_9000/Selenium_Implementation / jobappstest.db
+2022-04-20 14:38:03,540:sqlite:Checking sqlite schema
+2022-04-20 14:38:26,994:sqlite:Using database at path: /home/luca/Documents/Projects/Head_Hunter_9000/Selenium_Implementation / jobappstest.db
+2022-04-20 14:38:26,994:sqlite:Checking sqlite schema
+2022-04-20 14:39:01,946:sqlite:Using database at path: /home/luca/Documents/Projects/Head_Hunter_9000/Selenium_Implementation / jobappstest.db
+2022-04-20 14:39:01,946:sqlite:Checking sqlite schema
+2022-04-20 14:39:55,134:sqlite:Using database at path: /home/luca/Documents/Projects/Head_Hunter_9000/Selenium_Implementation / jobappstest.db
+2022-04-20 14:39:55,135:sqlite:Checking sqlite schema
+2022-04-20 14:40:04,251:sqlite:Using database at path: /home/luca/Documents/Projects/Head_Hunter_9000/Selenium_Implementation / jobappstest.db
+2022-04-20 14:40:04,251:sqlite:Checking sqlite schema
+2022-04-20 14:40:22,237:sqlite:Using database at path: /home/luca/Documents/Projects/Head_Hunter_9000/Selenium_Implementation / jobappstest.db
+2022-04-20 14:40:22,237:sqlite:Checking sqlite schema

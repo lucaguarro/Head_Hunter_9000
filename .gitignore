@@ -2,3 +2,4 @@ chromedriver
 *.zip
 config.ini
 basics.py
+Database
