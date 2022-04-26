@@ -1,6 +1,6 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver import ChromeOptions
 import urllib.parse
 import configparser
 import random, time
@@ -18,14 +18,16 @@ class Head_Hunter_9000:
 
         self.redirect_url = self.make_url(config['SEARCH_FILTERS'])
 
-        self.driver = webdriver.Chrome(executable_path="./chromedriver")
+        opts = ChromeOptions()
+        opts.add_argument("--window-size=2560,1440")
+        self.driver = webdriver.Chrome(executable_path = "./chromedriver", options = opts)
 
     def __del__(self):
         self.driver.close()
 
     def simulate_human_typing(self, html_input_el, desired_input):
         for letter in desired_input:
-            time.sleep(random.uniform(0.1, 0.3))
+            time.sleep(random.uniform(0.1, 0.2))
             html_input_el.send_keys(letter)
 
     def login(self):
@@ -43,7 +45,22 @@ class Head_Hunter_9000:
         submit_btn = self.driver.find_element_by_css_selector('form.login__form button[type=submit]')
         submit_btn.click()
 
-        print(url)
+    def submit_job_apps(self):
+        '''
+        job-item (on left): //div[contains(@class, 'job-card-container')]
+
+        job-info container: //div[contains(@class, 'jobs-search__job-details--container')]
+            job-card: //div[contains(@class, 'jobs-unified-top-card__content--two-pane')]
+                application button: //button[contains(@class, 'jobs-apply-button')]   -
+            job-description: //article[contains(@class, 'jobs-description__container')]           
+        '''
+        time.sleep(random.uniform(1, 3))
+        job_listings = self.driver.find_elements_by_xpath("//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]")
+        for i in range(len(job_listings)):
+            link = job_listings[i].find_element_by_xpath(".//a[contains(@class, 'job-card-container__link') and contains(@class, 'job-card-list__title')]")
+            link.click()
+            time.sleep(random.uniform(1,2))
+
 
     def make_url(self, search_filters):
         url_builder = 'https://www.linkedin.com/jobs/search/?f_AL=true&'
@@ -135,6 +152,7 @@ class Head_Hunter_9000:
         return seconds
 
 
-
-hh_9000 = Head_Hunter_9000()
-hh_9000.login()
+if __name__ == '__main__':
+    hh_9000 = Head_Hunter_9000()
+    hh_9000.login()
+    hh_9000.submit_job_apps()
