@@ -7,3 +7,5 @@ debugging.ipynb
 *.pyc
 *.db
 *.db-journal
+Logs
+__pycache__
