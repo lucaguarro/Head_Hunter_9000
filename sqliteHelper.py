@@ -15,6 +15,8 @@ class PathCode(Enum):
 
 class sqliteHelper:
 
+    # Init and Start-up Functions
+
     def __init__(self, db_config):
         path = Path(db_config['db_filename'])
         self.logger = utils.makeLogger("sqlite")
@@ -108,6 +110,10 @@ class sqliteHelper:
             self.logger.error("Last query attempted: {}".format(sql_q))
             self.logger.error("SHUTTING DOWN APPLICATION")
             raise
+
+    # DB insert functions
+
+    def insert_job(self, )
 
     def __del__(self):
         self.conn.close()
