@@ -29,12 +29,19 @@ class sqliteHelper:
             self.logger.info("Creating and using database at path: {} / {}".format(os.getcwd(), path))
             self.connect_sql(path)
             self.create_db_schema()
+            self.configure_db()
+
         else:
             self.logger.error("Invalid SQLite database")
             sys.exit(1)
 
-        if not os.path.isfile(path):
-            self.logger.info("Creating and using database at path: {} / {}".format(os.getcwd(), path))
+        self.setup()
+
+    def setup(self):
+        c = self.conn.cursor()
+        self.job_boards_dict = {}
+        for row in c.execute("SELECT JobBoardName, JobBoardID FROM JobBoards"):
+            self.job_boards_dict[row[0]] = row[1]
             
 
     def connect_sql(self, path):
@@ -91,8 +98,9 @@ class sqliteHelper:
 
     def create_db_schema(self):
         self.logger.info("Attempting to create sqlite schema")
+        last_q = ''
         try:
-            with open("./Database/tables_creation.txt", "r") as db_schema:
+            with open("./Database_Scripts/tables_creation.txt", "r") as db_schema:
                 sql_qs = db_schema.read().split('\n\n')
                 sql_qs_dict = {}
                 for sql_q in sql_qs:
@@ -101,19 +109,31 @@ class sqliteHelper:
 
             c = self.conn.cursor()
             for sql_q in sql_qs_dict.values():
+                last_q = sql_q
                 self.logger.info("Running query: {}".format(sql_q))
                 c.execute(sql_q)
   
             self.logger.info("Schema created successfully")
         except Exception:
             self.logger.error("Something went wrong when trying to create the database schema")
-            self.logger.error("Last query attempted: {}".format(sql_q))
+            self.logger.error("Last query attempted: {}".format(last_q))
             self.logger.error("SHUTTING DOWN APPLICATION")
             raise
 
+    def configure_db(self):
+        self.logger.info("Attempting to configure sqlite database")
+        try:
+            with open ("./Database_Scripts/configure_db.sql", "r") as db_config:
+                c = self.conn.cursor()
+                c.executescript(db_config.read())
+        except Exception:
+            self.logger.error("Something went wrong when trying to run the script in ./Database_Scripts/configure_db.sql")
+            self.logger.error("SHUTTING DOWN APPLICATION")
+
     # DB insert functions
 
-    def insert_job(self, )
+    def insert_job(self, job_desc):
+        pass
 
     def __del__(self):
         self.conn.close()

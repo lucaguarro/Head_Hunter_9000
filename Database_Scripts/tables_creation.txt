@@ -1,0 +1,72 @@
+JobBoards ::: CREATE TABLE "JobBoards" (
+	"JobBoardName"	TEXT NOT NULL UNIQUE,
+	"JobBoardID"	INTEGER NOT NULL UNIQUE,
+	PRIMARY KEY("JobBoardName","JobBoardID")
+);
+
+Jobs ::: CREATE TABLE "Jobs" (
+	"Salary"	TEXT,
+	"NumEmployees"	TEXT,
+	"Location"	TEXT,
+	"Description"	TEXT,
+	"AppSubmitted"	INTEGER,
+	"ExtJobID"	INTEGER NOT NULL,
+	"Source"	INTEGER NOT NULL,
+	"JobID"	INTEGER NOT NULL UNIQUE,
+	PRIMARY KEY("JobID"),
+	FOREIGN KEY("Source") REFERENCES "JobBoards"("JobBoardID")
+);
+
+Questions ::: CREATE TABLE "Questions" (
+	"Question"	TEXT NOT NULL,
+	"QuestionID"	INTEGER NOT NULL UNIQUE,
+	PRIMARY KEY("QuestionID" AUTOINCREMENT)
+)
+
+FreeResponseQuestions ::: CREATE TABLE "FreeResponseQuestions" (
+	"Answer"	TEXT,
+	"FreeResponseQuestionID"	INTEGER NOT NULL UNIQUE,
+	PRIMARY KEY("FreeResponseQuestionID"),
+	FOREIGN KEY("FreeResponseQuestionID") REFERENCES "Questions"("QuestionID")
+)
+
+RadioButtonsQuestions ::: CREATE TABLE "RadioButtonsQuestions" (
+	"AnswerAsOptionID"	INTEGER,
+	"OptionSetID"	INTEGER NOT NULL,
+	"RadioButtonsQuestionID"	INTEGER NOT NULL UNIQUE,
+	FOREIGN KEY("AnswerAsOptionID") REFERENCES "Options"("OptionID"),
+	PRIMARY KEY("RadioButtonsQuestionID"),
+	FOREIGN KEY("RadioButtonsQuestionID") REFERENCES "Questions"("QuestionID"),
+	FOREIGN KEY("OptionSetID") REFERENCES "OptionSets"("OptionSetID")
+)
+
+DropDownQuestions ::: CREATE TABLE "DropDownQuestions" (
+	"AnswerAsOptionID"	INTEGER,
+	"OptionSetID"	INTEGER NOT NULL,
+	"DropDownQuestionID"	INTEGER NOT NULL UNIQUE,
+	FOREIGN KEY("AnswerAsOptionID") REFERENCES "Options"("OptionID"),
+	FOREIGN KEY("OptionSetID") REFERENCES "OptionSets"("OptionSetID"),
+	PRIMARY KEY("DropDownQuestionID"),
+	FOREIGN KEY("DropDownQuestionID") REFERENCES "Questions"("QuestionID")
+)
+
+JobQuestions ::: CREATE TABLE "JobQuestions" (
+	"JobID"	INTEGER NOT NULL,
+	"QuestionID"	INTEGER NOT NULL,
+	FOREIGN KEY("JobID") REFERENCES "Jobs"("JobID"),
+	FOREIGN KEY("QuestionID") REFERENCES "Questions"("QuestionID")
+)
+
+OptionSets ::: CREATE TABLE "OptionSets" (
+	"OptionSetID"	INTEGER NOT NULL UNIQUE,
+	PRIMARY KEY("OptionSetID" AUTOINCREMENT)
+)
+
+Options ::: CREATE TABLE "Options" (
+	"OptionText"	TEXT NOT NULL,
+	"Value"	TEXT NOT NULL,
+	"OptionSetID"	INTEGER NOT NULL,
+	"OptionID"	INTEGER NOT NULL UNIQUE,
+	FOREIGN KEY("OptionSetID") REFERENCES "OptionSets"("OptionSetID"),
+	PRIMARY KEY("OptionID" AUTOINCREMENT)
+)
