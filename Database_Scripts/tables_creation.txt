@@ -2,20 +2,24 @@ JobBoards ::: CREATE TABLE "JobBoards" (
 	"JobBoardName"	TEXT NOT NULL UNIQUE,
 	"JobBoardID"	INTEGER NOT NULL UNIQUE,
 	PRIMARY KEY("JobBoardName","JobBoardID")
-);
+)
 
 Jobs ::: CREATE TABLE "Jobs" (
+	"JobTitle"	TEXT NOT NULL,
+	"CompanyName"	TEXT NOT NULL,
 	"Salary"	TEXT,
 	"NumEmployees"	TEXT,
 	"Location"	TEXT,
+	"WorkplaceType"	TEXT,
 	"Description"	TEXT,
 	"AppSubmitted"	INTEGER,
 	"ExtJobID"	INTEGER NOT NULL,
-	"Source"	INTEGER NOT NULL,
+	"JobBoardID"	INTEGER NOT NULL,
 	"JobID"	INTEGER NOT NULL UNIQUE,
 	PRIMARY KEY("JobID"),
-	FOREIGN KEY("Source") REFERENCES "JobBoards"("JobBoardID")
-);
+	FOREIGN KEY("JobBoardID") REFERENCES "JobBoards"("JobBoardID"),
+	UNIQUE("JobBoardID","ExtJobID")
+)
 
 Questions ::: CREATE TABLE "Questions" (
 	"Question"	TEXT NOT NULL,

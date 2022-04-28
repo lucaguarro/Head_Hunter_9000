@@ -1,3 +1,4 @@
+from distutils.util import execute
 import sqlite3 as lite
 import configparser
 from urllib.request import pathname2url
@@ -126,14 +127,48 @@ class sqliteHelper:
             with open ("./Database_Scripts/configure_db.sql", "r") as db_config:
                 c = self.conn.cursor()
                 c.executescript(db_config.read())
+                self.logger.info("Configuration script ran successfully")
         except Exception:
             self.logger.error("Something went wrong when trying to run the script in ./Database_Scripts/configure_db.sql")
             self.logger.error("SHUTTING DOWN APPLICATION")
 
+    # DB check functions
+
+    def is_in_table(self, table_name, **kwargs):
+        c = self.conn.cursor()
+        check_q = "SELECT count(*) FROM {} WHERE {}".format(table_name, ' AND '.join([k + ' = ?' for k in kwargs.keys()]))
+        values = [v if k != 'JobBoardID' else self.job_boards_dict[v] for k, v in kwargs.items()]
+        try:
+            c.execute(check_q, values)
+            if c.fetchone()[0] == 0:
+                return False
+            else:
+                return True
+        except Exception as e:
+            self.logger.error('Failed to execute check with following exception: {}'.format(e))
+            self.logger.error('Failed on following query:\n {} \n Using the following paramaters: {}'.format(check_q, values))
+            sys.exit(1)
+
+
     # DB insert functions
 
-    def insert_job(self, job_desc):
-        pass
+    def insert_job(self, **kwargs):
+        columns = [k for k in kwargs.keys()]
+        insert_q = '''
+                INSERT INTO Jobs ({}) VALUES ({})
+            '''.format(', '.join(columns), ', '.join(['?']*len(columns)))
+
+        values = [v if k != 'JobBoardID' else self.job_boards_dict[v] for k, v in kwargs.items()]
+        
+        c = self.conn.cursor()
+        try:
+            c.execute(insert_q, values)
+            self.conn.commit()
+            self.logger.info('Successfully added Job with position {} at company {}'.format(kwargs['JobTitle'], kwargs['CompanyName']))
+        except Exception as e:
+            self.logger.error('Failed to insert Job with following exception: {}'.format(e))
+            self.logger.error('Failed on following query:\n {} \n Using the following paramaters: {}'.format(insert_q, values))
+            sys.exit(1)
 
     def __del__(self):
         self.conn.close()
