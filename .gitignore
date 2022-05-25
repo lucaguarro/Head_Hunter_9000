@@ -3,7 +3,6 @@ chromedriver
 config.ini
 basics.py
 Database
-debugging.ipynb
 *.pyc
 *.db
 *.db-journal

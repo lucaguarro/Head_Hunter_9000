@@ -99,6 +99,9 @@ class Head_Hunter_9000:
                 just_added = True
 
             # if just_added or self.litehelper.is_in_table('Jobs', **{'JobBoardID':'linkedin', 'ExtJobID': ext_job_id, 'AppSubmitted': 0}):
+                # If all Questions for Job already have Answers
+
+                # Else if there are not yet any Questions
 
                 
             
