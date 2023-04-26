@@ -1,4 +1,6 @@
 from selenium import webdriver
+from selenium.webdriver.common.by import By
+from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver import ChromeOptions
 import html2text
@@ -20,9 +22,11 @@ class Head_Hunter_9000:
 
         self.redirect_url = self.make_url(config['SEARCH_FILTERS'])
 
+        print("yolo")
         opts = ChromeOptions()
         opts.add_argument("--window-size=2560,1440")
-        self.driver = webdriver.Chrome(executable_path = "./chromedriver", options = opts)
+        self.driver = webdriver.Chrome(ChromeDriverManager().install())
+        # self.driver = webdriver.Chrome(executable_path = "./chromedriver", options = opts)
 
         self.litehelper = sqliteHelper.sqliteHelper(config['DATABASE'])
 
@@ -39,19 +43,19 @@ class Head_Hunter_9000:
         url += urllib.parse.quote(self.redirect_url, safe='')
         self.driver.get(url)
 
-        username_input = self.driver.find_element_by_css_selector('form.login__form input[name=session_key]')
-        password_input = self.driver.find_element_by_css_selector('form.login__form input[name=session_password]')
+        username_input = self.driver.find_element(By.CSS_SELECTOR, 'form.login__form input[name=session_key]')
+        password_input = self.driver.find_element(By.CSS_SELECTOR, 'form.login__form input[name=session_password]')
 
         self.simulate_human_typing(username_input, self.username)
         self.simulate_human_typing(password_input, self.password)
 
         time.sleep(random.uniform(0.1, 0.5))
-        submit_btn = self.driver.find_element_by_css_selector('form.login__form button[type=submit]')
+        submit_btn = self.driver.find_element(By.CSS_SELECTOR, 'form.login__form button[type=submit]')
         submit_btn.click()
 
     def scroll_through_sidebar(self):
         scroll_cnt = 0
-        sidebar = self.driver.find_element_by_xpath("//div[@class='jobs-search-results display-flex flex-column']")
+        sidebar = self.driver.find_element(By.XPATH, "//div[@class='jobs-search-results display-flex flex-column']")
         while scroll_cnt < 5:
             self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;', sidebar)
             scroll_cnt += 1
@@ -59,23 +63,23 @@ class Head_Hunter_9000:
 
     def add_info_if_exists(self, job_dict, key, element, xpath_from_element):
         try:
-            info = element.find_element_by_xpath(xpath_from_element).text.strip()
+            info = element.find_element(By.XPATH, xpath_from_element).text.strip()
             job_dict[key] = info
         except NoSuchElementException:
             pass
 
     def build_job_info(self, ext_job_id, job_board='linkedin'):
         job_info = {}
-        job_info_container = self.driver.find_element_by_xpath("//div[@class='job-view-layout jobs-details']")
-        job_short = job_info_container.find_element_by_xpath(".//div[@class='jobs-unified-top-card__content--two-pane']")
-        company_location_info = job_short.find_element_by_xpath(".//span[contains(@class, 'jobs-unified-top-card__subtitle-primary-grouping')]")
+        job_info_container = self.driver.find_element(By.XPATH, "//div[@class='job-view-layout jobs-details']")
+        job_short = job_info_container.find_element(By.XPATH, ".//div[@class='jobs-unified-top-card__content--two-pane']")
+        company_location_info = job_short.find_element(By.XPATH, ".//span[contains(@class, 'jobs-unified-top-card__subtitle-primary-grouping')]")
         self.add_info_if_exists(job_info, 'Salary', job_short, "(.//li[@class='jobs-unified-top-card__job-insight'])[1]")
-        self.add_info_if_exists(job_info, 'NumEmployees', job_short, "(.//li[@class='jobs-unified-top-card__job-insight'])[2]")
+        self.add_info_if_exists(job_info, 'NumEmplworking on personal projects remote work reddityees', job_short, "(.//li[@class='jobs-unified-top-card__job-insight'])[2]")
         self.add_info_if_exists(job_info, 'Location', company_location_info, "./span[@class='jobs-unified-top-card__bullet']")
         self.add_info_if_exists(job_info, 'WorkplaceType', company_location_info, "./span[@class='jobs-unified-top-card__workplace-type']")
-        job_info['JobTitle'] = job_short.find_element_by_xpath(".//h2").text.strip()
-        job_info['CompanyName'] = company_location_info.find_element_by_xpath("./span[@class='jobs-unified-top-card__company-name']").text.strip()
-        job_info['Description'] = html2text.html2text(job_info_container.find_element_by_xpath("//article//span").get_attribute("innerHTML"))
+        job_info['JobTitle'] = job_short.find_element(By.XPATH, ".//h2").text.strip()
+        job_info['CompanyName'] = company_location_info.find_element(By.XPATH, "./span[@class='jobs-unified-top-card__company-name']").text.strip()
+        job_info['Description'] = html2text.html2text(job_info_container.find_element(By.XPATH, "//article//span").get_attribute("innerHTML"))
         job_info['JobBoardID'] = job_board
         job_info['AppSubmitted'] = 0
         job_info['ExtJobID'] = ext_job_id
@@ -85,23 +89,13 @@ class Head_Hunter_9000:
     def submit_job_apps(self):
         time.sleep(random.uniform(1,2))
         self.scroll_through_sidebar()
-        job_listings = self.driver.find_elements_by_xpath("//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]")
+        job_listings = self.driver.find_element(By.XPATH, "//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]")
         
         for i in range(len(job_listings)):
             just_added = False
             time.sleep(random.uniform(1,2))
-            link = job_listings[i].find_element_by_xpath(".//a[contains(@class, 'job-card-container__link') and contains(@class, 'job-card-list__title')]")
+            link = job_listings[i].find_element(By.XPATH, ".//a[contains(@class, 'job-card-container__link') and contains(@class, 'job-card-list__title')]")
             link.click()
-            ext_job_id = job_listings[i].get_attribute("data-job-id")
-            if not self.litehelper.is_in_table('Jobs', **{'JobBoardID':'linkedin', 'ExtJobID': ext_job_id}):
-                job_info = self.build_job_info(ext_job_id)
-                self.litehelper.insert_job(**job_info)
-                just_added = True
-
-            # if just_added or self.litehelper.is_in_table('Jobs', **{'JobBoardID':'linkedin', 'ExtJobID': ext_job_id, 'AppSubmitted': 0}):
-                # If all Questions for Job already have Answers
-
-                # Else if there are not yet any Questions
 
                 
             
