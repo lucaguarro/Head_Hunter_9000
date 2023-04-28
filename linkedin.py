@@ -22,7 +22,7 @@ class Head_Hunter_9000:
 
         self.redirect_url = self.make_url(config['SEARCH_FILTERS'])
 
-        print("yolo")
+        print(self.redirect_url)
         opts = ChromeOptions()
         opts.add_argument("--window-size=2560,1440")
         self.driver = webdriver.Chrome(ChromeDriverManager().install())
@@ -53,9 +53,10 @@ class Head_Hunter_9000:
         submit_btn = self.driver.find_element(By.CSS_SELECTOR, 'form.login__form button[type=submit]')
         submit_btn.click()
 
+
     def scroll_through_sidebar(self):
         scroll_cnt = 0
-        sidebar = self.driver.find_element(By.XPATH, "//div[@class='jobs-search-results display-flex flex-column']")
+        sidebar = self.driver.find_element(By.XPATH, "//div[@class='scaffold-layout__list ']/div[contains(@class, 'jobs-search-results-list')]")
         while scroll_cnt < 5:
             self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;', sidebar)
             scroll_cnt += 1
@@ -86,10 +87,13 @@ class Head_Hunter_9000:
         print(job_info)
         return job_info
 
+
+
+
     def submit_job_apps(self):
         time.sleep(random.uniform(1,2))
         self.scroll_through_sidebar()
-        job_listings = self.driver.find_element(By.XPATH, "//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]")
+        job_listings = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]")
         
         for i in range(len(job_listings)):
             just_added = False
@@ -98,8 +102,6 @@ class Head_Hunter_9000:
             link.click()
 
                 
-            
-
     def make_url(self, search_filters):
         url_builder = 'https://www.linkedin.com/jobs/search/?f_AL=true&'
 
