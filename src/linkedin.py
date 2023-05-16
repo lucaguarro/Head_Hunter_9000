@@ -9,7 +9,7 @@ import urllib.parse
 import configparser
 import random, time
 
-import sqliteHelper
+# import sqliteHelper
 
 class Head_Hunter_9000:
 
