@@ -29,6 +29,13 @@ jobquestion_table = Table(
     Column("questionid", ForeignKey("question.id"), primary_key=True)
 )
 
+optionset_table = Table(
+    "optionset",
+    Base.metadata,
+    Column("optionid", ForeignKey("option.id"), primary_key=True),
+    Column("questionid", ForeignKey("question.id"), primary_key=True)
+)
+
 class Job(Base):
     __tablename__ = "job"
 
@@ -67,7 +74,9 @@ class Question(Base):
     jobs: Mapped[List[Job]] = relationship(
         secondary=jobquestion_table, back_populates="questions"
     )
-    options = relationship("option", back_populates="questions")
+    options: Mapped[List[Option]] = relationship(
+        secondary=optionset_table, back_populates="questions"
+    )
 
     __mapper_args__ = {
         "polymorphic_identity": "question",
@@ -112,6 +121,9 @@ class Option(Base):
     value: Mapped[str] = mapped_column(String)
 
     questions = relationship("Question", back_populates="options")
+    questions: Mapped[List[Question]] = relationship(
+        secondary=optionset_table, back_populates="options"
+    )
 
 class OptionSet(Base):
     __tablename__= 'optionset'
