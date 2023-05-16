@@ -1,7 +1,7 @@
 import datetime
 from sqlalchemy import UniqueConstraint, ForeignKey
 from sqlalchemy import func
-from sqlalchemy import String, Boolean, Integer, Column, DateTime
+from sqlalchemy import String, Boolean, Integer, Column, DateTime, List
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
@@ -16,7 +16,7 @@ class JobBoard(Base):
     name: Mapped[str] = mapped_column(String(30), primary_key=True)
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     
-    jobs = relationship("Job", back_populates="job_board")
+    jobs = relationship("job", back_populates="jobboard")
 
     def __repr__(self):
         return f"<JobBoard(name='{self.name}')>"
@@ -38,6 +38,7 @@ class Job(Base):
 
     jobboard_id = Column(Integer, ForeignKey('jobboard.id'))
     jobboard = relationship("JobBoard", back_populates="jobs")
+    questions: Mapped[List]
 
     UniqueConstraint("jobboardid", "extjobid")
 
@@ -52,7 +53,8 @@ class Question(Base):
     question: Mapped[str] = mapped_column(String)
     type: Mapped[str]
 
-    jobs = relationship("Job", secondary="jobquestion")
+    jobs = relationship("job", secondary="jobquestion")
+    options = relationship("option", back_populates="questions")
 
     __mapper_args__ = {
         "polymorphic_identity": "question",
@@ -62,15 +64,56 @@ class Question(Base):
     def __repr__(self):
         return f"<Question(question_text='{self.question_text}', type='{self.type}')>"
 
-
-class FreeResponseQuestion(Base):
-
-
 class JobQuestion(Base):
     __tablename__ = 'jobquestion'
 
-    jobid = Column(Integer, ForeignKey('Job.id'), nullable=False)
-    questionid = Column(Integer, ForeignKey('Question.id'), nullable=False)
+    jobid: Mapped[int] = mapped_column(ForeignKey('job.id'), primary_key=True)
+    questionid: Mapped[int] = mapped_column(ForeignKey('question.id'), primary_key=True)
 
-    job = relationship("job")
+    job = Mapped["Job"] = relationship(back_populates="questions")
     question = relationship("question")
+
+class FreeResponseQuestion(Question):
+    __tablename__ = 'freeresponsequestion'
+
+    answer: Mapped[str] = mapped_column(String)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "free response",
+    }
+
+class RadioButtonsQuestion(Question):
+    __tablename__ = 'radiobuttonquestion'
+
+    answerasoptionid = Column(Integer, ForeignKey('Option.id', nullable=False))
+
+    __mapper_args__ = {
+        "polymorphic_identity": "radio buttons",
+    }
+
+class DropDownQuestion(Question):
+    __tablename__ = 'dropdownquestion'
+
+    answerasoptionid = Column(Integer, ForeignKey('Option.id', nullable=False))
+
+    __mapper_args__ = {
+        "polymorphic_identity": "drop down",
+    }
+
+class Option(Base):
+    __tablename__ = 'option'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    optiontext: Mapped[str] = mapped_column(String)
+    value: Mapped[str] = mapped_column(String)
+
+    questions = relationship("Question", back_populates="options")
+
+class OptionSet(Base):
+    __tablename__= 'optionset'
+
+    questionid = Column(Integer, ForeignKey('Question.id', nullable=False))
+    optionid = Column(Integer, ForeignKey('Option.id', nullable=False))
+
+    question = relationship("Question")
+    option = relationship("Option")
