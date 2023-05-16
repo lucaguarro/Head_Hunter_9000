@@ -1,4 +1,5 @@
 import datetime
+from sqlalchemy import Table
 from sqlalchemy import UniqueConstraint, ForeignKey
 from sqlalchemy import func
 from sqlalchemy import String, Boolean, Integer, Column, DateTime, List
@@ -21,6 +22,13 @@ class JobBoard(Base):
     def __repr__(self):
         return f"<JobBoard(name='{self.name}')>"
 
+jobquestion_table = Table(
+    "jobquestion",
+    Base.metadata,
+    Column("jobid", ForeignKey("job.id"), primary_key=True),
+    Column("questionid", ForeignKey("question.id"), primary_key=True)
+)
+
 class Job(Base):
     __tablename__ = "job"
 
@@ -38,7 +46,10 @@ class Job(Base):
 
     jobboard_id = Column(Integer, ForeignKey('jobboard.id'))
     jobboard = relationship("JobBoard", back_populates="jobs")
-    questions: Mapped[List]
+    
+    questions: Mapped[List[Question]] = relationship(
+        secondary=jobquestion_table, back_populates="jobs"
+    )
 
     UniqueConstraint("jobboardid", "extjobid")
 
@@ -53,7 +64,9 @@ class Question(Base):
     question: Mapped[str] = mapped_column(String)
     type: Mapped[str]
 
-    jobs = relationship("job", secondary="jobquestion")
+    jobs: Mapped[List[Job]] = relationship(
+        secondary=jobquestion_table, back_populates="questions"
+    )
     options = relationship("option", back_populates="questions")
 
     __mapper_args__ = {
@@ -63,15 +76,6 @@ class Question(Base):
     
     def __repr__(self):
         return f"<Question(question_text='{self.question_text}', type='{self.type}')>"
-
-class JobQuestion(Base):
-    __tablename__ = 'jobquestion'
-
-    jobid: Mapped[int] = mapped_column(ForeignKey('job.id'), primary_key=True)
-    questionid: Mapped[int] = mapped_column(ForeignKey('question.id'), primary_key=True)
-
-    job = Mapped["Job"] = relationship(back_populates="questions")
-    question = relationship("question")
 
 class FreeResponseQuestion(Question):
     __tablename__ = 'freeresponsequestion'
