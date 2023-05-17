@@ -9,6 +9,8 @@ import urllib.parse
 import configparser
 import random, time
 
+from data.architecture import JobBoard, Job, FreeResponseQuestion, RadioButtonsQuestion, DropDownQuestion, Option
+
 # import sqliteHelper
 
 class Head_Hunter_9000:
@@ -86,9 +88,6 @@ class Head_Hunter_9000:
         job_info['ExtJobID'] = ext_job_id
         print(job_info)
         return job_info
-
-
-
 
     def submit_job_apps(self):
         time.sleep(random.uniform(1,2))
