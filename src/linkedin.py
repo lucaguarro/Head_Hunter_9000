@@ -27,10 +27,7 @@ class Head_Hunter_9000:
         print(self.redirect_url)
         opts = ChromeOptions()
         opts.add_argument("--window-size=2560,1440")
-        self.driver = webdriver.Chrome(ChromeDriverManager().install())
-        # self.driver = webdriver.Chrome(executable_path = "./chromedriver", options = opts)
-
-        self.litehelper = sqliteHelper.sqliteHelper(config['DATABASE'])
+        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options = opts)
 
     def __del__(self):
         self.driver.close()
