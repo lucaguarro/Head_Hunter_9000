@@ -1,0 +1,12 @@
+{
+   "version": "0.2.0",
+   "configurations": [
+       {
+           "type": "python",
+           "request": "launch",
+           "name": "Launch from project as cwd",
+           "cwd": "/home/luca/Documents/Projects/Head_Hunter_9000",
+           "program": "${file}"
+       }
+   ]
+}
