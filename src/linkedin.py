@@ -11,7 +11,7 @@ import random
 import time
 
 import re
-from data.architecture import JobBoard, Job, FreeResponseQuestion, RadioButtonsQuestion, DropDownQuestion, Option
+import data.architecture as da
 
 
 # import sqliteHelper
@@ -118,6 +118,73 @@ class Head_Hunter_9000:
             print("Could not find job id.")
             return ''
 
+    def scrape_freeresponse_questions(self, freeresponse_question_containers):
+        questions = []
+        for fr_q_c in freeresponse_question_containers:
+            question_prompt = fr_q_c.find_element(By.TAG_NAME, "label")
+            # fr_q_c.find_element(By.TAG_NAME, "input") <-- get input field
+            questions.append(question_prompt)
+
+        return questions
+
+    def scrape_dropdown_questions(self, dropdown_question_containers):
+        questions_with_options = []
+
+        for dd_q_c in dropdown_question_containers:
+            question_prompt = dd_q_c.find_element(By.XPATH, "./label/span[@aria-hidden='true']").text
+
+            select = dd_q_c.find_element(By.TAG_NAME, "select")
+            options = select.find_elements(By.TAG_NAME, "option")
+
+            # List to store the dictionaries
+            option_list = []
+
+            # Loop through the "option" elements and extract inner text and value
+            for option in options:
+                inner_text = option.text
+                value = option.get_attribute("value")
+
+                # Create a dictionary for each "option" element and add it to the list
+                option_dict = {
+                    "text": inner_text,
+                    "value": value
+                }
+                option_list.append(option_dict)
+
+            questions_with_options.append((question_prompt, option_list))
+
+        return questions_with_options
+
+
+    def scrape_radiobutton_questions(self, radiobutton_question_containers):
+        questions_with_options = []
+
+        for rb_q_c in radiobutton_question_containers:
+            question_prompt = rb_q_c.find_element(By.XPATH, "//span[@data-test-form-builder-radio-button-form-component__title]/span[@aria-hidden='true']").text
+            print(question_prompt)
+
+            input_containers = rb_q_c.find_elements(By.TAG_NAME, "div")
+
+            # List to store the dictionaries
+            option_list = []
+
+            for input_container in input_containers:
+                input = input_container.find_element(By.TAG_NAME, "input")
+                value = input.get_attribute('value')
+
+                inner_text = input_container.find_element(By.TAG_NAME, "label").text
+
+                option_dict = {
+                    "text": inner_text,
+                    "value": value
+                }
+                option_list.append(option_dict)
+
+            questions_with_options.append((question_prompt, option_list))
+        
+        return questions_with_options
+
+
     def scrape_questions(self, job_info_container):
         easy_apply_button = job_info_container.find_element(By.XPATH, "//button[contains(@class, 'jobs-apply-button')]")
         easy_apply_button.click()
@@ -129,50 +196,11 @@ class Head_Hunter_9000:
         radiobutton_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]")
 
         while not self.driver.find_elements(By.XPATH, "//span[text()='Next']/ancestor::button"):
-            for dd_q_c in dropdown_question_containers:
-                question_prompt = dd_q_c.find_element(By.XPATH, "./label/span[@aria-hidden='true']").text
 
-                select = dd_q_c.find_element(By.TAG_NAME, "select")
-                options = select.find_elements(By.TAG_NAME, "option")
+            self.scrape_freeresponse_questions(freeresponse_question_containers)
+            self.scrape_dropdown_questions(dropdown_question_containers)
+            self.scrape_dropdown_questions(radiobutton_question_containers)
 
-                # List to store the dictionaries
-                option_list = []
-
-                # Loop through the "option" elements and extract inner text and value
-                for option in options:
-                    inner_text = option.text
-                    value = option.get_attribute("value")
-
-                    # Create a dictionary for each "option" element and add it to the list
-                    option_dict = {
-                        "text": inner_text,
-                        "value": value
-                    }
-                    option_list.append(option_dict)
-
-                # Print the list of dictionaries
-                print(option_list)
-
-            for rb_q_c in radiobutton_question_containers:
-                question_prompt = rb_q_c.find_element(By.XPATH, "//span[@data-test-form-builder-radio-button-form-component__title]/span[@aria-hidden='true']").text
-                print(question_prompt)
-
-                input_containers = rb_q_c.find_elements(By.TAG_NAME, "div")
-
-                # List to store the dictionaries
-                option_list = []
-
-                for input_container in input_containers:
-                    input = input_container.find_element(By.TAG_NAME, "input")
-                    value = input.get_attribute('value')
-
-                    inner_text = input_container.find_element(By.TAG_NAME, "label").text
-
-                    option_dict = {
-                        "text": inner_text,
-                        "value": value
-                    }
-                    option_list.append(option_dict)
 
             next_btn = self.driver.find_element(By.XPATH, "//span[text()='Next']/ancestor::button")
             next_btn.click()
@@ -203,6 +231,7 @@ class Head_Hunter_9000:
             if not job_info['appsubmitted']:
                 self.scrape_questions(job_info_container)
 
+    # TODO this should be rewritten to use ''.join so as to not constantly allocate memory for each time we append to the string
     def make_url(self, search_filters):
         url_builder = 'https://www.linkedin.com/jobs/search/?f_AL=true&'
 
