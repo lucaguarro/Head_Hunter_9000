@@ -6,5 +6,6 @@ Database
 *.pyc
 *.db
 *.db-journal
+*.log
 Logs
 __pycache__

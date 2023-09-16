@@ -1,0 +1,25 @@
+Bottom up approach:
+
+1. Check if each unique option is in the database.
+- if an option is in the database, we keep track of its id
+- if it isn't, then we create a new option and at this point we know for sure we are going to create a new option set
+- in the end we populate a list of option ids. Call it optionids_list.
+
+2. Check if an option set exists that already has exactly these options
+"""
+select OptionSetID
+from OptionSetOption
+where OptionID in optionids_list 
+group by OptionSetID
+having count(*) = len(optionids_list)
+"""
+- if the above query returns something, then great! record the optionsetid
+- if it does not, create a new OptionSet and populate OptionSetOption with (optionsetid, optionid) for optionid in optionids_list.
+  If this happens, then we know for sure we are going to create a new question
+
+3. Check if a question with the question text, type, and optionsetid already exists.
+- if it does then great, get this questionid
+- if it doesn't, create a new question
+
+4. Link the job to the question
+- insert (JobID, QuestionID) into JobQuestion
