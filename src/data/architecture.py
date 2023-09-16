@@ -32,12 +32,24 @@ jobquestion_table = Table(
     Column("questionid", ForeignKey("question.id"), primary_key=True)
 )
 
-optionset_table = Table(
-    "optionset",
+optionsetoption_table = Table(
+    "optionsetoption",
     Base.metadata,
     Column("optionid", ForeignKey("option.id"), primary_key=True),
-    Column("questionid", ForeignKey("question.id"), primary_key=True)
+    Column("optionsetid", ForeignKey("optionset.id"), primary_key=True)
 )
+
+class OptionSet(Base):
+    __tablename__ = "optionset"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    questions: relationship("question", back_populates="optionset")
+
+    options: Mapped[List["Option"]] = relationship(
+        secondary=optionsetoption_table, back_populates="optionsets"
+    )
+
 
 class Job(Base):
     __tablename__ = "job"
@@ -72,19 +84,19 @@ class Question(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     question: Mapped[str] = mapped_column(String)
+    optionsetid: Mapped[int] = Column(Integer, ForeignKey("optionset.id"))
     type: Mapped[str]
 
     jobs: Mapped[List["Job"]] = relationship(
         secondary=jobquestion_table, back_populates="questions"
-    )
-    options: Mapped[List["Option"]] = relationship(
-        secondary=optionset_table, back_populates="questions"
     )
 
     __mapper_args__ = {
         "polymorphic_identity": "question",
         "polymorphic_on": "type"
     }
+
+    optionset = relationship("OptionSet", back_populates="questions")
     
     def __repr__(self):
         return f"<Question(question_text='{self.question_text}', type='{self.type}')>"
@@ -126,8 +138,8 @@ class Option(Base):
     text: Mapped[str] = mapped_column(String)
     value: Mapped[str] = mapped_column(String)
 
-    questions: Mapped[List[Question]] = relationship(
-        secondary=optionset_table, back_populates="options"
+    optionsets: Mapped[List[OptionSet]] = relationship(
+        secondary=optionsetoption_table, back_populates="options"
     )
 
 engine = create_engine('sqlite:///example.db', echo=True)
