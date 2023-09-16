@@ -44,7 +44,7 @@ class OptionSet(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    questions: relationship("question", back_populates="optionset")
+    questions: Mapped[List["Question"]] = relationship("question", back_populates="optionset")
 
     options: Mapped[List["Option"]] = relationship(
         secondary=optionsetoption_table, back_populates="optionsets"
