@@ -123,7 +123,7 @@ class Option(Base):
     __tablename__ = 'option'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    optiontext: Mapped[str] = mapped_column(String)
+    text: Mapped[str] = mapped_column(String)
     value: Mapped[str] = mapped_column(String)
 
     questions: Mapped[List[Question]] = relationship(

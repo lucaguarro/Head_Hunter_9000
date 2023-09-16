@@ -9,12 +9,27 @@ import urllib.parse
 import configparser
 import random
 import time
+import logging.config
+logging.config.dictConfig({
+    'version': 1,
+    # Other configs ...
+    'disable_existing_loggers': True
+})
+import logging
 
 import re
 import data.architecture as da
+import scraper.utils as utils
+from exceptions import ParseJobError
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    filename="linkedin.log"
+)
 
-# import sqliteHelper
+logger = logging.getLogger(__name__)
 
 class Head_Hunter_9000:
 
@@ -25,7 +40,7 @@ class Head_Hunter_9000:
         self.username = config['LOGIN']['email']
         self.password = config['LOGIN']['password']
 
-        self.redirect_url = self.make_url(config['SEARCH_FILTERS'])
+        self.redirect_url = utils.make_url(config['SEARCH_FILTERS'])
 
         print(self.redirect_url)
         opts = ChromeOptions()
@@ -35,11 +50,6 @@ class Head_Hunter_9000:
     def __del__(self):
         self.driver.close()
 
-    def simulate_human_typing(self, html_input_el, desired_input):
-        for letter in desired_input:
-            time.sleep(random.uniform(0.1, 0.2))
-            html_input_el.send_keys(letter)
-
     def login(self):
         url = "https://www.linkedin.com/login?emailAddress=&fromSignIn=&fromSignIn=true&session_redirect="
         url += urllib.parse.quote(self.redirect_url, safe='')
@@ -48,12 +58,13 @@ class Head_Hunter_9000:
         username_input = self.driver.find_element(By.CSS_SELECTOR, 'form.login__form input[name=session_key]')
         password_input = self.driver.find_element(By.CSS_SELECTOR, 'form.login__form input[name=session_password]')
 
-        self.simulate_human_typing(username_input, self.username)
-        self.simulate_human_typing(password_input, self.password)
+        utils.simulate_human_typing(username_input, self.username)
+        utils.simulate_human_typing(password_input, self.password)
 
         time.sleep(random.uniform(0.1, 0.5))
         submit_btn = self.driver.find_element(By.CSS_SELECTOR, 'form.login__form button[type=submit]')
         submit_btn.click()
+        logger.debug("Logged into linkedin.")
 
     def scroll_through_sidebar(self):
         scroll_cnt = 0
@@ -90,7 +101,7 @@ class Head_Hunter_9000:
             }
             return job_attributes
         else:
-            return None
+            raise ParseJobError(job_string, pattern)
     
     def build_job_info(self, job_info_container, ext_job_id, job_board='linkedin'):
         job_info = {}
@@ -186,6 +197,17 @@ class Head_Hunter_9000:
 
 
     def scrape_questions(self, job_info_container):
+        def get_next_btn():
+            nxt_btn = self.driver.find_elements(By.XPATH, "//span[text()='Next']/ancestor::button")
+            if not nxt_btn:
+                nxt_btn = self.driver.find_elements(By.XPATH, "//span[text()='Review']/ancestor::button")
+            
+            if not nxt_btn:
+                return None
+            else:
+                return nxt_btn[0]
+
+
         easy_apply_button = job_info_container.find_element(By.XPATH, "//button[contains(@class, 'jobs-apply-button')]")
         easy_apply_button.click()
 
@@ -195,15 +217,15 @@ class Head_Hunter_9000:
         dropdown_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-text-entity-list-form-component]")
         radiobutton_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]")
 
-        while not self.driver.find_elements(By.XPATH, "//span[text()='Next']/ancestor::button"):
+        next_btn = get_next_btn()
+        while next_btn:
 
-            self.scrape_freeresponse_questions(freeresponse_question_containers)
-            self.scrape_dropdown_questions(dropdown_question_containers)
-            self.scrape_dropdown_questions(radiobutton_question_containers)
+            fr_prompts = self.scrape_freeresponse_questions(freeresponse_question_containers)
+            dd_prompts_and_options = self.scrape_dropdown_questions(dropdown_question_containers)
+            rb_prompts_and_options = self.scrape_radiobutton_questions(radiobutton_question_containers)
 
-
-            next_btn = self.driver.find_element(By.XPATH, "//span[text()='Next']/ancestor::button")
             next_btn.click()
+            next_btn = get_next_btn()
 
         # //div[@class='pb4']
         # A - Gets the question containers //div[@class='pb4']/div[contains(@class, 'jobs-easy-apply-form-section__grouping')]
@@ -211,8 +233,8 @@ class Head_Hunter_9000:
         # C - Gets radio button questions starting from A //fieldset[@data-test-form-builder-radio-button-form-component]
         # //span[text()='Next']/ancestor::button
         # //li-icon[@type='cancel-icon']/ancestor::button
-        questions = []
-        return questions
+        all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options}
+        return all_questions
 
     def submit_job_apps(self):
         time.sleep(random.uniform(1, 2))
@@ -225,100 +247,12 @@ class Head_Hunter_9000:
             link = job_listings[i].find_element(By.XPATH, ".//a[contains(@class, 'job-card-container__link') and contains(@class, 'job-card-list__title')]")
             link.click()
 
-            ext_job_id = self.get_job_id(self.driver.current_url)
-            job_info_container = self.driver.find_element(By.XPATH, "//div[@class='job-view-layout jobs-details']")
-            job_info = self.build_job_info(job_info_container, ext_job_id)
-            if not job_info['appsubmitted']:
-                self.scrape_questions(job_info_container)
-
-    # TODO this should be rewritten to use ''.join so as to not constantly allocate memory for each time we append to the string
-    def make_url(self, search_filters):
-        url_builder = 'https://www.linkedin.com/jobs/search/?f_AL=true&'
-
-        exp_q = self.get_exp_q(int(search_filters['exp_level']))
-        if exp_q:
-            url_builder += "f_E=" + exp_q + "&"
-        job_type_q = self.get_job_type_q(int(search_filters['job_type']))
-        if job_type_q:
-            url_builder += "f_JT=" + job_type_q + "&"
-
-        date_posted_q = self.get_seconds_posted_ago_q(int(search_filters['date_posted']))
-        if date_posted_q:
-            url_builder += "f_TPR=r" + str(date_posted_q) + "&"
-
-        on_site_remote_q = self.get_on_site_remote_q(int(search_filters['on_site_remote']))
-        if on_site_remote_q:
-            url_builder += "f_WT=" + str(on_site_remote_q) + "&"
-
-        keywords_q = urllib.parse.quote(search_filters['job_title'])
-        if keywords_q:
-            url_builder += "keywords=" + keywords_q + "&"
-
-        location_q = urllib.parse.quote(search_filters['location'])
-        if location_q:
-            url_builder += "location=" + location_q + "&"
-
-        return url_builder[:-1]
-
-    def get_on_site_remote_q(self, on_site_remote):
-        if on_site_remote == 0:
-            return None
-        out = self.decode_num_to_bin(on_site_remote, 3)
-        query = ''
-        for i in range(len(out)):
-            if out[i]:
-                query += str(i+1) + ','
-
-        return urllib.parse.quote(query[:-1])
-
-    def get_job_type_q(self, job_type):
-        bit_to_letter = {
-            1: 'F',
-            2: 'P',
-            3: 'C',
-            4: 'T',
-            5: 'V',
-            6: 'I',
-            7: 'O'
-        }
-        if job_type == 0:
-            return None
-        out = self.decode_num_to_bin(job_type, 7)
-        query = ''
-        for i in range(len(out)):
-            if out[i]:
-                query += bit_to_letter[i+1] + ','
-        return urllib.parse.quote(query[:-1])
-
-    def decode_num_to_bin(self, value, num_bits):
-        return [1 if value & (1 << (num_bits-1-n)) else 0 for n in range(num_bits-1, -1, -1)]
-
-    def get_exp_q(self, exp_level):
-        if exp_level == 0:
-            return None
-        out = self.decode_num_to_bin(exp_level, 6)
-        query = ''
-        for i in range(len(out)):
-            if out[i]:
-                query += str(i+1) + ','
-
-        return urllib.parse.quote(query[:-1])
-
-    def get_seconds_posted_ago_q(self, date_posted):
-        if date_posted == 1:  # any time
-            return None
-        elif date_posted == 2:
-            seconds = 30*24*60*60
-        elif date_posted == 3:
-            seconds = 7*24*60*60
-        elif date_posted == 4:
-            seconds = 24*60*60
-        else:
-            seconds = max(date_posted, 24*60, 60)
-        return seconds
-
-
-if __name__ == '__main__':
-    hh_9000 = Head_Hunter_9000('config.ini')
-    hh_9000.login()
-    hh_9000.submit_job_apps()
+            try:
+                ext_job_id = self.get_job_id(self.driver.current_url)
+                job_info_container = self.driver.find_element(By.XPATH, "//div[@class='job-view-layout jobs-details']")
+                job_info = self.build_job_info(job_info_container, ext_job_id)
+                if not job_info['appsubmitted']:
+                    all_questions = self.scrape_questions(job_info_container)
+            except ParseJobError as e:
+                logger.error(e)
+                
