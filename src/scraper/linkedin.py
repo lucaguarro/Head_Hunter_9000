@@ -1,7 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver import ChromeOptions
 import html2text
 from selenium.common.exceptions import NoSuchElementException
@@ -132,8 +132,7 @@ class Head_Hunter_9000:
     def scrape_freeresponse_questions(self, freeresponse_question_containers):
         questions = []
         for fr_q_c in freeresponse_question_containers:
-            question_prompt = fr_q_c.find_element(By.TAG_NAME, "label")
-            # fr_q_c.find_element(By.TAG_NAME, "input") <-- get input field
+            question_prompt = fr_q_c.find_element(By.TAG_NAME, "label").get_attribute("innerText")
             questions.append(question_prompt)
 
         return questions
@@ -195,44 +194,60 @@ class Head_Hunter_9000:
         
         return questions_with_options
 
+    def fill_out_questions(self, freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers):
+        for fr_q in freeresponse_question_containers:
+            input_tag = fr_q.find_element(By.TAG_NAME, "input")
+            input_tag.clear()
+            input_tag.send_keys("1")
+
+        for dd_q in dropdown_question_containers:
+            select_el = dd_q.find_element(By.TAG_NAME, "select")
+            select = Select(select_el)
+            select.select_by_index(1)
+
+        for rb_q in radiobutton_question_containers:
+            radio_buttons = rb_q.find_elements(By.XPATH, ".//label")
+            if radio_buttons:
+                radio_buttons[0].click()
 
     def scrape_questions(self, job_info_container):
         def get_next_btn():
             nxt_btn = self.driver.find_elements(By.XPATH, "//span[text()='Next']/ancestor::button")
-            if not nxt_btn:
-                nxt_btn = self.driver.find_elements(By.XPATH, "//span[text()='Review']/ancestor::button")
-            
-            if not nxt_btn:
-                return None
-            else:
+            if nxt_btn:
                 return nxt_btn[0]
-
-
+            
+            rvw_btn = self.driver.find_elements(By.XPATH, "//span[text()='Review']/ancestor::button")
+            if rvw_btn:
+                return rvw_btn[0]
+            
+            return None
+        
         easy_apply_button = job_info_container.find_element(By.XPATH, "//button[contains(@class, 'jobs-apply-button')]")
         easy_apply_button.click()
 
         question_form = self.driver.find_element(By.XPATH, "//div[@class='pb4']")
 
-        freeresponse_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component]")
-        dropdown_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-text-entity-list-form-component]")
-        radiobutton_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]")
+        fr_prompts = []
+        dd_prompts_and_options = []
+        rb_prompts_and_options = []
 
-        next_btn = get_next_btn()
+        next_btn = True
         while next_btn:
+            next_btn = get_next_btn()
+            question_form = self.driver.find_element(By.XPATH, "//div[@class='pb4']")
 
-            fr_prompts = self.scrape_freeresponse_questions(freeresponse_question_containers)
-            dd_prompts_and_options = self.scrape_dropdown_questions(dropdown_question_containers)
-            rb_prompts_and_options = self.scrape_radiobutton_questions(radiobutton_question_containers)
+            freeresponse_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component]")
+            dropdown_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-text-entity-list-form-component]")
+            radiobutton_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]")
+
+            self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers)
+
+            fr_prompts.extend(self.scrape_freeresponse_questions(freeresponse_question_containers))
+            dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers))
+            rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
 
             next_btn.click()
-            next_btn = get_next_btn()
 
-        # //div[@class='pb4']
-        # A - Gets the question containers //div[@class='pb4']/div[contains(@class, 'jobs-easy-apply-form-section__grouping')]
-        # B - Gets text question container starting from A  //div[@data-test-single-line-text-form-component]
-        # C - Gets radio button questions starting from A //fieldset[@data-test-form-builder-radio-button-form-component]
-        # //span[text()='Next']/ancestor::button
-        # //li-icon[@type='cancel-icon']/ancestor::button
         all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options}
         return all_questions
 
