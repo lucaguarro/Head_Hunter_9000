@@ -44,7 +44,8 @@ class OptionSet(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    questions: Mapped[List["Question"]] = relationship(back_populates="optionset")
+    radiobuttonquestions: Mapped[List["RadioButtonQuestion"]] = relationship(back_populates="optionset")
+    dropdownquestions: Mapped[List["DropDownQuestion"]] = relationship(back_populates="optionset")
 
     options: Mapped[List["Option"]] = relationship(
         secondary=optionsetoption_table, back_populates="optionsets"
@@ -84,7 +85,6 @@ class Question(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     question: Mapped[str] = mapped_column(String)
-    optionsetid: Mapped[int] = Column(Integer, ForeignKey("optionset.id"))
     type: Mapped[str]
 
     jobs: Mapped[List["Job"]] = relationship(
@@ -95,11 +95,9 @@ class Question(Base):
         "polymorphic_identity": "question",
         "polymorphic_on": "type"
     }
-
-    optionset: Mapped["OptionSet"] = relationship(back_populates="questions")
     
     def __repr__(self):
-        return f"<Question(question_text='{self.question_text}', type='{self.type}')>"
+        return f"<Question(question='{self.question}', type='{self.type}')>"
 
 class FreeResponseQuestion(Question):
     __tablename__ = 'freeresponsequestion'
@@ -111,25 +109,32 @@ class FreeResponseQuestion(Question):
         "polymorphic_identity": "free response",
     }
 
-class RadioButtonsQuestion(Question):
+class RadioButtonQuestion(Question):
     __tablename__ = 'radiobuttonquestion'
 
     id: Mapped[int] = mapped_column(ForeignKey("question.id"), primary_key=True)
-    answerasoptionid = Column(Integer, ForeignKey('option.id'), nullable=False)
+    optionsetid: Mapped[int] = Column(Integer, ForeignKey("optionset.id"))
+    answerasoptionid = Column(Integer, ForeignKey('option.id'), nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": "radio buttons",
     }
 
+    optionset: Mapped["OptionSet"] = relationship(back_populates="radiobuttonquestions")
+
+
 class DropDownQuestion(Question):
     __tablename__ = 'dropdownquestion'
 
     id: Mapped[int] = mapped_column(ForeignKey("question.id"), primary_key=True)
-    answerasoptionid = Column(Integer, ForeignKey('option.id'), nullable=False)
+    optionsetid: Mapped[int] = Column(Integer, ForeignKey("optionset.id"))
+    answerasoptionid = Column(Integer, ForeignKey('option.id'), nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": "drop down",
     }
+
+    optionset: Mapped["OptionSet"] = relationship(back_populates="dropdownquestions")
 
 class Option(Base):
     __tablename__ = 'option'
