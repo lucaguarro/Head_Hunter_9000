@@ -20,7 +20,7 @@ class JobBoard(Base):
 
     name: Mapped[str] = mapped_column(String(30))
     
-    jobs = relationship("job", back_populates="jobboard")
+    jobs: Mapped[List["Job"]] = relationship(back_populates="jobboard")
 
     def __repr__(self):
         return f"<JobBoard(name='{self.name}')>"
@@ -44,7 +44,7 @@ class OptionSet(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    questions: Mapped[List["Question"]] = relationship("question", back_populates="optionset")
+    questions: Mapped[List["Question"]] = relationship(back_populates="optionset")
 
     options: Mapped[List["Option"]] = relationship(
         secondary=optionsetoption_table, back_populates="optionsets"
@@ -67,7 +67,7 @@ class Job(Base):
     createdat: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     jobboardid = Column(Integer, ForeignKey('jobboard.id'))
-    jobboard = relationship("JobBoard", back_populates="jobs")
+    jobboard: Mapped["JobBoard"] = relationship(back_populates="jobs")
     
     questions: Mapped[List["Question"]] = relationship(
         secondary=jobquestion_table, back_populates="jobs"
@@ -96,7 +96,7 @@ class Question(Base):
         "polymorphic_on": "type"
     }
 
-    optionset = relationship("OptionSet", back_populates="questions")
+    optionset: Mapped["OptionSet"] = relationship(back_populates="questions")
     
     def __repr__(self):
         return f"<Question(question_text='{self.question_text}', type='{self.type}')>"
