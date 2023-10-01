@@ -1,32 +1,100 @@
-import architecture as a
-from sqlalchemy import select, and_, or_
+import data.architecture as da
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import func
 
-def insert_job_board():
-    pass
+Session = sessionmaker(bind=da.engine)
+session = Session()
 
-def insert_job_with_questions(job_info, questions):
-    job = a.Job(**job_info)
+def insert_options(options):
+    
+    options_sa = []
+    was_option_created = False
 
-    questions_sa = []
+    for option in options:
 
-    for prompt in questions['freeresponse']:
-        fr_q_sa = select(a.FreeResponseQuestion).where(a.FreeResponseQuestion.question == prompt)
-        if fr_q_sa is None:
-            fr_q_sa = a.FreeResponseQuestion(question = prompt)
+        # Try to retrieve an existing option with the same text and value
+        existing_option = session.query(da.Option).filter_by(**option).first()
 
-        questions_sa.append(fr_q_sa)
-
-    '''
-    For each dropdown question, we want to get a list of the possibl
-    '''
-    for question_options in questions['dropdown']:
-        question = question_options['question']
-        options = question_options['options']
-
-        options_sa = []
-        for option in options:
-            option_sa = select(a.Option).where(and_(a.Option.text == option['text'], a.Option.value == option['value']))
-            if option_sa is None:
-                option_sa = a.Option(**option)
-
+        if existing_option is None:
+            print("no option found")
+            # Option doesn't exist, create and insert it
+            new_option = da.Option(**option)
+            session.add(new_option)
+            # session.commit()
+            was_option_created = True
             
+            # Now you have a reference to the newly inserted option
+            existing_option = new_option
+        else:
+            print("option found")
+
+        options_sa.append(existing_option)
+
+    return options_sa, was_option_created
+
+def does_optionset_exist(options_sa):
+    option_ids = [o.id for o in options_sa]
+
+    subquery = session.query(da.OptionSet).join(
+        da.optionsetoption_table,
+        da.Option.id == da.optionsetoption_table.c.optionid
+    ).filter(
+        da.Option.id.in_(option_ids)
+    ).group_by(da.OptionSet).having(
+        func.count(da.optionsetoption_table.c.optionid) == len(option_ids)
+    ).subquery()
+
+    matching_optionset = session.query(da.OptionSet).filter(da.OptionSet.id.in_(subquery)).first()
+    return matching_optionset
+
+def make_optionset(options_sa):
+    new_optionset = da.OptionSet()
+    session.add(new_optionset)
+    new_optionset.options = options_sa
+    # session.commit()
+
+    return new_optionset
+
+def does_question_exist(question_text, question_type, optionset):
+
+    if question_type == da.QuestionType.FREERESPONSE:
+        existing_question = session.query(da.FreeResponseQuestion).filter(
+            da.FreeResponseQuestion.question == question_text,
+        )
+    elif question_type == da.QuestionType.RADIOBUTTON:
+        existing_question = session.query(da.RadioButtonQuestion).filter(
+            da.RadioButtonQuestion.question == question_text,
+            da.RadioButtonQuestion.optionset == optionset
+        )
+    elif question_type == da.QuestionType.DROPDOWN:
+        existing_question = session.query(da.DropDownQuestion).filter(
+            da.DropDownQuestion.question == question_text,
+            da.DropDownQuestion.optionset == optionset
+        )
+
+    return existing_question.first()
+
+def create_question(question_text, question_type, optionset):
+    if question_type == da.QuestionType.FREERESPONSE:
+        new_question = da.FreeResponseQuestion(
+            question = question_text
+        )
+    elif question_type == da.QuestionType.RADIOBUTTON:
+        new_question = da.RadioButtonQuestion(
+            question = question_text,
+            optionset = optionset
+        )
+    elif question_type == da.QuestionType.DROPDOWN:
+        new_question = da.DropDownQuestion(
+            question = question_text,
+            optionset = optionset
+        )
+
+    return new_question
+
+def create_job(job_dict):
+    job = da.Job(
+        **job_dict
+    )
+
+    return job

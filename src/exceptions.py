@@ -1,4 +1,4 @@
-class ParseJobError(Exception):
+class RegexParseError(Exception):
 
     def __init__(self, job_string, pattern):
         self.job_string = job_string

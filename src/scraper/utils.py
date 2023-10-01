@@ -92,3 +92,19 @@ def make_url(search_filters):
         url_builder += "location=" + location_q + "&"
 
     return url_builder[:-1]
+
+def convert_to_integer(number_string):
+    # Remove commas from the number string
+    cleaned_string = number_string.replace(',', '')
+    
+    try:
+        # Convert the cleaned string to an integer
+        integer_value = int(cleaned_string)
+        return integer_value
+    except ValueError:
+        # Handle the case where the input is not a valid number
+        print("Error: Invalid number format")
+        return None
+    
+def convert_hourly_wage_to_yearly(hourly_wage):
+    return hourly_wage * 40 * 52.1429 # 40 hrs per week, 52.1429 weeks in a year

@@ -1,10 +1,11 @@
 import datetime
+from enum import Enum
 from typing import List
 from sqlalchemy import Table
 from sqlalchemy import UniqueConstraint, ForeignKey
 from sqlalchemy import create_engine
 from sqlalchemy import func
-from sqlalchemy import String, Boolean, Integer, Column, DateTime
+from sqlalchemy import String, Boolean, Integer, Float, Column, DateTime
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
@@ -66,6 +67,7 @@ class Job(Base):
     appsubmitted: Mapped[bool] = mapped_column(Boolean)
     extjobid: Mapped[int] = mapped_column(Integer)
     createdat: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    preferencescore: Mapped[float] = mapped_column(Float)
 
     jobboardid = Column(Integer, ForeignKey('jobboard.id'))
     jobboard: Mapped["JobBoard"] = relationship(back_populates="jobs")
@@ -79,6 +81,7 @@ class Job(Base):
     def __repr__(self):
         return f"<Job(title='{self.title}', company_name='{self.company_name}')>"
 
+QuestionType = Enum('QuestionType', ['FREERESPONSE', 'RADIOBUTTON', 'DROPDOWN'])
 
 class Question(Base):
     __tablename__ = "question"

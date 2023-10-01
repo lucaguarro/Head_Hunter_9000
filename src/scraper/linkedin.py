@@ -20,7 +20,7 @@ import logging
 import re
 import data.architecture as da
 import scraper.utils as utils
-from exceptions import ParseJobError
+from exceptions import RegexParseError
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -81,36 +81,68 @@ class Head_Hunter_9000:
         except NoSuchElementException:
             pass
 
-    def parse_job_string(self, job_string):
-        pattern = r'^(.*?) · (.*?) \((.*?)\) +(\d+ (day|week|month)s? ago) +· +(\d+(?:,\d+)? applicants)$'
+    def parse_sub_title_text(self, job_string):
+        pattern = r'^(.*?) · (.*?) +(Reposted)? +(\d+ (?:day|week|month)s? ago) +· +(\d+(?:,\d+)? applicants)$'
         match = re.match(pattern, job_string)
 
         if match:
             company_name = match.group(1)
             location = match.group(2)
-            workplace_type = match.group(3)
+            was_reposted = True if match.group(3) == 'Reposted' else False
             posted_time_ago = match.group(4)
-            num_applicants = match.group(6).replace(',', '')
+            num_applicants = match.group(5).replace(',', '')
 
             job_attributes = {
                 "companyname": company_name,
                 "location": location,
-                "workplacetype": workplace_type,
+                "wasreposted": was_reposted,
                 "postedtimeago": posted_time_ago,
                 "numapplicants": num_applicants
             }
             return job_attributes
         else:
-            raise ParseJobError(job_string, pattern)
+            raise RegexParseError(job_string, pattern)
+        
+    def get_salary_bounds(self, match):
+        salary_lower_bound = match.group(1)
+        salary_upper_bound = match.group(3)
+        if salary_lower_bound:
+            is_hourly = True if match.group(2) == '/hr' else False
+            salary_lower_bound = utils.convert_to_integer(salary_lower_bound)
+            salary_upper_bound = utils.convert_to_integer(salary_upper_bound)
+            if is_hourly:
+                salary_lower_bound = utils.convert_hourly_wage_to_yearly(salary_lower_bound)
+                salary_upper_bound = utils.convert_hourly_wage_to_yearly(salary_upper_bound)
+            return salary_lower_bound, salary_upper_bound
+        else:
+            return None, None
+        
+    def parse_first_line_text(self, job_string):
+        pattern = r'^(?:\$(\d+(?:,\d+)?)(/hr|/yr)?\s*-\s*\$(\d+(?:,\d+)?)(?:/hr|/yr)?\s*)?(Hybrid|Remote|On-site)?\s*(Full-time|Part-time|Contract|Temp|Volunteer)?\s*(Internship|Entry level|Associate|Mid-Senior level|Director|Executive)?'
+        match = re.match(pattern, job_string)
+
+        if match:
+            salary_lower_bound, salary_upper_bound = self.get_salary_bounds(match)
+            onsite_remote = match.group(4)
+            worktype = match.group(5)
+            exp_level = match.group(6)
+
+    def parse_second_line_text(self, job_string):
+        pass
     
     def build_job_info(self, job_info_container, ext_job_id, job_board='linkedin'):
         job_info = {}
-        job_short = job_info_container.find_element(By.XPATH, ".//div[@class='jobs-unified-top-card__content--two-pane']")
-        company_location_info = job_short.find_element(By.XPATH, "./div[@class='jobs-unified-top-card__primary-description']")
-        job_info.update(self.parse_job_string(company_location_info.text))
+        job_short = job_info_container.find_element(By.XPATH, ".//div[contains(@class, 'jobs-unified-top-card__content--two-pane')]")
 
-        self.add_info_if_exists(job_info, 'salary', job_short, "(.//li[@class='jobs-unified-top-card__job-insight'])[1]")
-        self.add_info_if_exists(job_info, 'numemployees', job_short, "(.//li[@class='jobs-unified-top-card__job-insight'])[2]")
+        sub_title_text = job_short.find_element(By.XPATH, "./div[@class='job-details-jobs-unified-top-card__primary-description']").text
+        job_info.update(self.parse_sub_title_text(sub_title_text))
+
+        first_line_text = job_short.find_element(By.XPATH, "(.//li[@class='job-details-jobs-unified-top-card__job-insight'])[1]").text
+        job_info.update(self.parse_first_line_text(first_line_text))
+
+        second_line_text = job_short.find_element(By.XPATH, "(.//li[@class='job-details-jobs-unified-top-card__job-insight'])[2]").text
+        job_info.update(self.parse_second_line_text(second_line_text))
+
         job_info['jobtitle'] = job_short.find_element(By.XPATH, ".//h2").text.strip()
         job_info['description'] = html2text.html2text(job_info_container.find_element(By.XPATH, "//article//span").get_attribute("innerHTML"))
         job_info['jobboardid'] = job_board
