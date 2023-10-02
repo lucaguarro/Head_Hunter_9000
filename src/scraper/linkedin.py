@@ -81,27 +81,27 @@ class Head_Hunter_9000:
         except NoSuchElementException:
             pass
 
-    def parse_sub_title_text(self, job_string):
+    def parse_sub_title_text(self, text):
         pattern = r'^(.*?) · (.*?) +(Reposted)? +(\d+ (?:day|week|month)s? ago) +· +(\d+(?:,\d+)? applicants)$'
-        match = re.match(pattern, job_string)
+        match = re.match(pattern, text)
 
         if match:
             company_name = match.group(1)
             location = match.group(2)
-            was_reposted = True if match.group(3) == 'Reposted' else False
+            is_a_repost = True if match.group(3) == 'Reposted' else False
             posted_time_ago = match.group(4)
             num_applicants = match.group(5).replace(',', '')
 
             job_attributes = {
                 "companyname": company_name,
                 "location": location,
-                "wasreposted": was_reposted,
+                "isarepost": is_a_repost,
                 "postedtimeago": posted_time_ago,
                 "numapplicants": num_applicants
             }
             return job_attributes
         else:
-            raise RegexParseError(job_string, pattern)
+            raise RegexParseError(text, pattern)
         
     def get_salary_bounds(self, match):
         salary_lower_bound = match.group(1)
@@ -117,9 +117,9 @@ class Head_Hunter_9000:
         else:
             return None, None
         
-    def parse_first_line_text(self, job_string):
+    def parse_first_line_text(self, text):
         pattern = r'^(?:\$(\d+(?:,\d+)?)(/hr|/yr)?\s*-\s*\$(\d+(?:,\d+)?)(?:/hr|/yr)?\s*)?(Hybrid|Remote|On-site)?\s*(Full-time|Part-time|Contract|Temp|Volunteer)?\s*(Internship|Entry level|Associate|Mid-Senior level|Director|Executive)?'
-        match = re.match(pattern, job_string)
+        match = re.match(pattern, text)
 
         if match:
             salary_lower_bound, salary_upper_bound = self.get_salary_bounds(match)
@@ -127,8 +127,32 @@ class Head_Hunter_9000:
             worktype = match.group(5)
             exp_level = match.group(6)
 
-    def parse_second_line_text(self, job_string):
-        pass
+            job_attributes = {
+                "salarylowerbound": salary_lower_bound,
+                "salaryupperbound": salary_upper_bound,
+                "workplacetype": onsite_remote,
+                "jobtype": worktype,
+                "explevel": exp_level
+            }
+            return job_attributes
+        else:
+            raise RegexParseError(text, pattern)
+
+    def parse_second_line_text(self, text):
+        pattern = r'^(\d+-\d+ employees)?(?: · )?(?:(.+))?$'
+        match = re.search(pattern, text)
+
+        if match:
+            num_employees = match.group(1)
+            industry = match.group(2)
+
+            job_attributes = {
+                "numemployees": num_employees,
+                "industry": industry
+            }
+            return job_attributes
+        else:
+            raise RegexParseError(text, text)
     
     def build_job_info(self, job_info_container, ext_job_id, job_board='linkedin'):
         job_info = {}
@@ -145,9 +169,10 @@ class Head_Hunter_9000:
 
         job_info['jobtitle'] = job_short.find_element(By.XPATH, ".//h2").text.strip()
         job_info['description'] = html2text.html2text(job_info_container.find_element(By.XPATH, "//article//span").get_attribute("innerHTML"))
-        job_info['jobboardid'] = job_board
         job_info['appsubmitted'] = True if job_short.find_elements(By.XPATH, "//span[@class='artdeco-inline-feedback__message']") else False
         job_info['extjobid'] = ext_job_id
+
+        job_info['jobboardid'] = job_board
         return job_info
 
     def get_job_id(self, url):

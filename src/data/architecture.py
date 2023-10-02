@@ -57,19 +57,35 @@ class Job(Base):
     __tablename__ = "job"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    jobtitle: Mapped[str] = mapped_column(String)
+
+    # columns obtained from parse_sub_title_text
     companyname: Mapped[str] = mapped_column(String)
-    salary: Mapped[str] = mapped_column(String)
-    numemployees: Mapped[str] = mapped_column(String)
     location: Mapped[str] = mapped_column(String)
+    isarepost: Mapped[bool] = mapped_column(Boolean)
+    postedtimeago: Mapped[str] = mapped_column(String)
+    numapplicants: Mapped[str] = mapped_column(String)
+
+    # columns obtained from parse_first_line_text
+    salarylowerbound: Mapped[int] = mapped_column(Integer)
+    salaryupperbound: Mapped[int] = mapped_column(Integer)
     workplacetype: Mapped[str] = mapped_column(String)
+    jobtype: Mapped[str] = mapped_column(String)
+    explevel: Mapped[str] = mapped_column(String)
+
+    # columns obtained from parse_second_line_text
+    numemployees: Mapped[str] = mapped_column(String)
+    industry: Mapped[str] = mapped_column(String)
+
+    jobtitle: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(String)
     appsubmitted: Mapped[bool] = mapped_column(Boolean)
     extjobid: Mapped[int] = mapped_column(Integer)
+
+    jobboardid = Column(Integer, ForeignKey('jobboard.id'))
+
     createdat: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     preferencescore: Mapped[float] = mapped_column(Float)
 
-    jobboardid = Column(Integer, ForeignKey('jobboard.id'))
     jobboard: Mapped["JobBoard"] = relationship(back_populates="jobs")
     
     questions: Mapped[List["Question"]] = relationship(
