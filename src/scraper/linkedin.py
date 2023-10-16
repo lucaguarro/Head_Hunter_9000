@@ -346,6 +346,7 @@ class Head_Hunter_9000:
             time.sleep(random.uniform(1, 2))
             link = job_listings[i].find_element(By.XPATH, ".//a[contains(@class, 'job-card-container__link') and contains(@class, 'job-card-list__title')]")
             link.click()
+            time.sleep(random.uniform(1, 2))
 
             try:
                 ext_job_id = self.get_job_id(self.driver.current_url)
