@@ -19,6 +19,7 @@ import logging
 
 import re
 import data.architecture as da
+import data.manager as dm
 import scraper.utils as utils
 from exceptions import RegexParseError
 
@@ -82,7 +83,7 @@ class Head_Hunter_9000:
             pass
 
     def parse_sub_title_text(self, text):
-        pattern = r'^(.*?) · (.*?) +(Reposted)? +(\d+ (?:day|week|month)s? ago) +· +(\d+(?:,\d+)? applicants)$'
+        pattern = r'^(.*?) · (.*?) +(Reposted)? +(\d+ (?:hour|day|week|month)s? ago) +· +(\d+(?:,\d+)? applicants)$'
         match = re.match(pattern, text)
 
         if match:
@@ -227,7 +228,7 @@ class Head_Hunter_9000:
         questions_with_options = []
 
         for rb_q_c in radiobutton_question_containers:
-            question_prompt = rb_q_c.find_element(By.XPATH, "//span[@data-test-form-builder-radio-button-form-component__title]/span[@aria-hidden='true']").text
+            question_prompt = rb_q_c.find_element(By.XPATH, ".//span[@data-test-form-builder-radio-button-form-component__title]/span[@aria-hidden='true']").text
             print(question_prompt)
 
             input_containers = rb_q_c.find_elements(By.TAG_NAME, "div")
@@ -268,14 +269,15 @@ class Head_Hunter_9000:
                 radio_buttons[0].click()
 
     def scrape_questions(self, job_info_container):
+        # def get_rvw_btn():
+        #     rvw_btn = hh_9000.driver.find_elements(By.XPATH, "//span[text()='Review']/ancestor::button")
+        #     if rvw_btn:
+        #         return rvw_btn[0]
+
         def get_next_btn():
             nxt_btn = self.driver.find_elements(By.XPATH, "//span[text()='Next']/ancestor::button")
             if nxt_btn:
                 return nxt_btn[0]
-            
-            rvw_btn = self.driver.find_elements(By.XPATH, "//span[text()='Review']/ancestor::button")
-            if rvw_btn:
-                return rvw_btn[0]
             
             return None
         
@@ -303,12 +305,38 @@ class Head_Hunter_9000:
             dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers))
             rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
 
-            next_btn.click()
+            if next_btn is not None:
+                next_btn.click()
 
         all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options}
-        return all_questions
 
-    def submit_job_apps(self):
+        close_button = self.driver.find_element(By.XPATH, "//button[@data-test-modal-close-btn]")
+        close_button.click()
+        close_button2 = self.driver.find_element(By.XPATH, "//button[@data-test-dialog-secondary-btn]")
+        close_button2.click()
+
+        return all_questions
+    
+    def store_to_database(self, job_info, all_questions):
+        jobboard_sa = dm.create_or_get_job_board('linkedin')
+
+        questions_sa = []
+        for fr_q in all_questions['freeresponse']:
+            question_sa = dm.create_question(fr_q, da.QuestionType.FREERESPONSE, None)
+            questions_sa.append(question_sa)
+
+        for dd_q in all_questions['dropdown']:
+            question_sa = dm.create_question_and_options(dd_q, da.QuestionType.DROPDOWN)
+            questions_sa.append(question_sa)
+
+        for rb_q in all_questions['radiobutton']:
+            question_sa = dm.create_question_and_options(rb_q, da.QuestionType.RADIOBUTTON)
+            questions_sa.append(question_sa)
+
+        dm.create_job(job_info, jobboard_sa, questions_sa)
+        dm.commit()
+
+    def scan_job_apps(self, apply_mode_on=False):
         time.sleep(random.uniform(1, 2))
         self.scroll_through_sidebar()
         job_listings = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]")
@@ -323,8 +351,11 @@ class Head_Hunter_9000:
                 ext_job_id = self.get_job_id(self.driver.current_url)
                 job_info_container = self.driver.find_element(By.XPATH, "//div[@class='job-view-layout jobs-details']")
                 job_info = self.build_job_info(job_info_container, ext_job_id)
-                if not job_info['appsubmitted']:
+                if not job_info['appsubmitted']: # can also do a check here to see if job already exists in local db TODO
                     all_questions = self.scrape_questions(job_info_container)
-            except ParseJobError as e:
+                    self.store_to_database(job_info, all_questions)
+            except RegexParseError as e:
                 logger.error(e)
+
+            # close job pop-up window
                 

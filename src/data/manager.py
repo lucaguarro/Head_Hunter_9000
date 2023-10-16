@@ -5,6 +5,22 @@ from sqlalchemy import func
 Session = sessionmaker(bind=da.engine)
 session = Session()
 
+def create_or_get_job_board(jobboardname):
+    jobboard = session.query(da.JobBoard).filter_by(name=jobboardname).first()
+    if not jobboard:
+        jobboard = da.JobBoard(name=jobboardname)
+    
+    return jobboard
+
+def create_job(job_info, jobboard_sa, questions_sa):
+    job = da.Job(**job_info)
+    job.jobboard = jobboard_sa
+    job.questions = questions_sa
+    session.add(job)
+
+def commit():
+    session.commit()
+
 def insert_options(options):
     
     options_sa = []
@@ -32,23 +48,19 @@ def insert_options(options):
 
     return options_sa, was_option_created
 
-def does_optionset_exist(options_sa):
-    option_ids = [o.id for o in options_sa]
+def create_options_hash(options_sa):
+    option_ids = sorted([o.id for o in options_sa])
+    result = '-'.join(map(str, option_ids))
+    return result
 
-    subquery = session.query(da.OptionSet).join(
-        da.optionsetoption_table,
-        da.Option.id == da.optionsetoption_table.c.optionid
-    ).filter(
-        da.Option.id.in_(option_ids)
-    ).group_by(da.OptionSet).having(
-        func.count(da.optionsetoption_table.c.optionid) == len(option_ids)
-    ).subquery()
+def does_optionset_exist(options_hash):
+    existing_optionset = session.query(da.OptionSet).filter(
+        da.OptionSet.optionshash == options_hash
+    )
+    return existing_optionset.first()
 
-    matching_optionset = session.query(da.OptionSet).filter(da.OptionSet.id.in_(subquery)).first()
-    return matching_optionset
-
-def make_optionset(options_sa):
-    new_optionset = da.OptionSet()
+def make_optionset(options_sa, options_hash):
+    new_optionset = da.OptionSet(optionshash = options_hash)
     session.add(new_optionset)
     new_optionset.options = options_sa
     # session.commit()
@@ -74,7 +86,39 @@ def does_question_exist(question_text, question_type, optionset):
 
     return existing_question.first()
 
-def create_question(question_text, question_type, optionset):
+def create_question_and_options(rb_prompt_and_options, question_type):
+    prompt = rb_prompt_and_options[0]
+    options = rb_prompt_and_options[1]
+
+    options_sa, was_option_created = insert_options(options)
+    if was_option_created:
+        flush()
+
+    options_hash = create_options_hash(options_sa)
+    was_optionset_created = False
+    if was_option_created:
+        optionset_sa = make_optionset(options_sa, options_hash)
+        was_optionset_created = True
+    else:
+        optionset_sa = does_optionset_exist(options_hash)
+        if not optionset_sa:
+            optionset_sa = make_optionset(options_sa, options_hash)
+            was_optionset_created = True
+    
+    if was_optionset_created:
+        flush()
+
+    if was_optionset_created:
+        question_sa = create_question(prompt, question_type, optionset_sa)
+    else:
+        question_sa = does_question_exist(prompt, question_type, optionset_sa)
+    if not question_sa:
+        question_sa = create_question(prompt, question_type, optionset_sa)
+    
+    return question_sa
+
+
+def create_question(question_text, question_type, optionset = None):
     if question_type == da.QuestionType.FREERESPONSE:
         new_question = da.FreeResponseQuestion(
             question = question_text
@@ -92,9 +136,20 @@ def create_question(question_text, question_type, optionset):
 
     return new_question
 
-def create_job(job_dict):
-    job = da.Job(
-        **job_dict
-    )
+def flush():
+    session.flush()
 
-    return job
+# def does_optionset_exist(options_sa):
+#     option_ids = [o.id for o in options_sa]
+
+#     subquery = session.query(da.OptionSet).join(
+#         da.optionsetoption_table,
+#         da.Option.id == da.optionsetoption_table.c.optionid
+#     ).filter(
+#         da.Option.id.in_(option_ids)
+#     ).group_by(da.OptionSet).having(
+#         func.count(da.optionsetoption_table.c.optionid) == len(option_ids)
+#     ).subquery()
+
+#     matching_optionset = session.query(da.OptionSet).filter(da.OptionSet.id.in_(subquery)).first()
+#     return matching_optionset

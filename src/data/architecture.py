@@ -44,6 +44,7 @@ class OptionSet(Base):
     __tablename__ = "optionset"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    optionshash: Mapped[str] = mapped_column(String, unique=True, nullable=False)
 
     radiobuttonquestions: Mapped[List["RadioButtonQuestion"]] = relationship(back_populates="optionset")
     dropdownquestions: Mapped[List["DropDownQuestion"]] = relationship(back_populates="optionset")
@@ -60,21 +61,21 @@ class Job(Base):
 
     # columns obtained from parse_sub_title_text
     companyname: Mapped[str] = mapped_column(String)
-    location: Mapped[str] = mapped_column(String)
-    isarepost: Mapped[bool] = mapped_column(Boolean)
-    postedtimeago: Mapped[str] = mapped_column(String)
-    numapplicants: Mapped[str] = mapped_column(String)
+    location: Mapped[str] = mapped_column(String, nullable=True)
+    isarepost: Mapped[bool] = mapped_column(Boolean, nullable=True)
+    postedtimeago: Mapped[str] = mapped_column(String, nullable=True)
+    numapplicants: Mapped[str] = mapped_column(String, nullable=True)
 
     # columns obtained from parse_first_line_text
-    salarylowerbound: Mapped[int] = mapped_column(Integer)
-    salaryupperbound: Mapped[int] = mapped_column(Integer)
-    workplacetype: Mapped[str] = mapped_column(String)
-    jobtype: Mapped[str] = mapped_column(String)
-    explevel: Mapped[str] = mapped_column(String)
+    salarylowerbound: Mapped[int] = mapped_column(Integer, nullable=True)
+    salaryupperbound: Mapped[int] = mapped_column(Integer, nullable=True)
+    workplacetype: Mapped[str] = mapped_column(String, nullable=True)
+    jobtype: Mapped[str] = mapped_column(String, nullable=True)
+    explevel: Mapped[str] = mapped_column(String, nullable=True)
 
     # columns obtained from parse_second_line_text
-    numemployees: Mapped[str] = mapped_column(String)
-    industry: Mapped[str] = mapped_column(String)
+    numemployees: Mapped[str] = mapped_column(String, nullable=True)
+    industry: Mapped[str] = mapped_column(String, nullable=True)
 
     jobtitle: Mapped[str] = mapped_column(String)
     description: Mapped[str] = mapped_column(String)
@@ -84,7 +85,7 @@ class Job(Base):
     jobboardid = Column(Integer, ForeignKey('jobboard.id'))
 
     createdat: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    preferencescore: Mapped[float] = mapped_column(Float)
+    preferencescore: Mapped[float] = mapped_column(Float, nullable=True)
 
     jobboard: Mapped["JobBoard"] = relationship(back_populates="jobs")
     
@@ -122,7 +123,7 @@ class FreeResponseQuestion(Question):
     __tablename__ = 'freeresponsequestion'
 
     id: Mapped[int] = mapped_column(ForeignKey("question.id"), primary_key=True)
-    answer: Mapped[str] = mapped_column(String)
+    answer: Mapped[str] = mapped_column(String, nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": "free response",
