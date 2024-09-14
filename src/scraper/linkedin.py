@@ -46,7 +46,9 @@ class Head_Hunter_9000:
         print(self.redirect_url)
         opts = ChromeOptions()
         opts.add_argument("--window-size=2560,1440")
-        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=opts)
+        testing123 = ChromeDriverManager().install()
+        testing123 = '/home/luca/Documents/Projects/Head_Hunter_9000/chromedriver-linux64/chromedriver'
+        self.driver = webdriver.Chrome(testing123, options=opts)
 
     def __del__(self):
         self.driver.close()
@@ -74,6 +76,7 @@ class Head_Hunter_9000:
             self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;', sidebar)
             scroll_cnt += 1
             time.sleep(random.uniform(1, 3))
+        return sidebar
 
     def add_info_if_exists(self, job_dict, key, element, xpath_from_element):
         try:
@@ -157,7 +160,7 @@ class Head_Hunter_9000:
     
     def build_job_info(self, job_info_container, ext_job_id, job_board='linkedin'):
         job_info = {}
-        job_short = job_info_container.find_element(By.XPATH, ".//div[contains(@class, 'jobs-unified-top-card__content--two-pane')]")
+        job_short = job_info_container.find_element(By.XPATH, ".//div[contains(@class, 'job-details-jobs-unified-top-card__container--two-pane')]")
 
         sub_title_text = job_short.find_element(By.XPATH, "./div[@class='job-details-jobs-unified-top-card__primary-description']").text
         job_info.update(self.parse_sub_title_text(sub_title_text))
@@ -338,8 +341,8 @@ class Head_Hunter_9000:
 
     def scan_job_apps(self, apply_mode_on=False):
         time.sleep(random.uniform(1, 2))
-        self.scroll_through_sidebar()
-        job_listings = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]")
+        jobs_sidebar = self.scroll_through_sidebar()
+        job_listings = jobs_sidebar.find_elements(By.XPATH, "//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]")
 
         for i in range(len(job_listings)):
             just_added = False
