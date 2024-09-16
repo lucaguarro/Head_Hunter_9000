@@ -1,0 +1,102 @@
+{
+    "root": {
+        "xpath": "",
+        "children": {
+            "login_main": {
+                "xpath": "",
+                "children": {
+                    "login_username_input": {
+                        "xpath": "form.login__form input[name=session_key]"
+                    },
+                    "login_password_input": {
+                        "xpath": "form.login__form input[name=session_password]"
+                    },
+                    "login_submit_button": {
+                        "xpath": "form.login__form button[type=submit]"
+                    }
+                }
+            },
+            "jobapps_main": {
+                "xpath": "",
+                "children": {
+                    "jobapps_sidebar": {
+                        "xpath": "//div[@class='scaffold-layout__list ']/div[contains(@class, 'jobs-search-results-list')]",
+                        "children": {
+                            "sidebar_listings": {
+                                "xpath": "//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]",
+                                "children": {
+                                    "listing_link": {
+                                        "xpath": ".//a[contains(@class, 'job-card-container__link') and contains(@class, 'job-card-list__title')]"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "jobinfo_container": {
+                        "xpath": "//div[@class='job-view-layout jobs-details']",
+                        "children": {
+                            "job_short": {
+                                "xpath": ".//div[contains(@class, 'job-details-jobs-unified-top-card__container--two-pane')]",
+                                "children": {
+                                    "companyname": {
+                                        "xpath": ".//div[@class='job-details-jobs-unified-top-card__company-name']"
+                                    },
+                                    "subtitle": {
+                                        "xpath": ".//div[@class='job-details-jobs-unified-top-card__primary-description-container']",
+                                        "regex": "^(.*?) · (Reposted )?(\\d+ (?:day|week|month|hour|minute)s? ago) · Over (\\d+(?:,\\d+)? applicants)$"
+                                    },
+                                    "firstline": {
+                                        "xpath": "(.//li[contains(@class, 'job-details-jobs-unified-top-card__job-insight')])[1]//span[not(contains(@class, 'visually-hidden')) and not(*[self::span])]"
+                                    },
+                                    "secondline": {
+                                        "xpath": "(.//li[@class='job-details-jobs-unified-top-card__job-insight'])[2]"
+                                    },
+                                    "jobtitle": {
+                                        "xpath": ".//h1"
+                                    },
+                                    "appsubmitted": {
+                                        "xpath": "//span[@class='artdeco-inline-feedback__message']"
+                                    }
+                                }
+                            },
+                            "description": {
+                                "xpath": "//article//span"
+                            }
+                        }
+                    },
+                    "jobapp_popup": {
+                        "xpath": "",
+                        "children": {
+                            "nextpage_button": {
+                                "xpath": "//span[text()='Next']/ancestor::button"
+                            },
+                            "easyapply_button": {
+                                "xpath": "//button[contains(@class, 'jobs-apply-button')]"
+                            },
+                            "question_form": {
+                                "xpath": "//div[@class='pb4']",
+                                "children": {
+                                    "freeresponse_question_container": {
+                                        "xpath": "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component]"
+                                    },
+                                    "dropdown_question_container": {
+                                        "xpath": "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-text-entity-list-form-component]"
+                                    },
+                                    "radiobutton_question_container": {
+                                        "xpath": "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]"
+                                    }
+                                }
+                            },
+                            "closepage_button": {
+                                "xpath": "//button[@data-test-modal-close-btn]"
+                            },
+                            "closepage_button2": {
+                                "xpath": "//button[@data-test-dialog-secondary-btn]"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
