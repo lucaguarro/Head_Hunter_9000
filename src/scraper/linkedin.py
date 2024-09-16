@@ -143,6 +143,59 @@ class Head_Hunter_9000:
             return salary_lower_bound, salary_upper_bound
         else:
             return None, None
+
+    def parse_salary_range(self, salary_text):
+        # Check if the salary is hourly or yearly
+        is_hourly = "/hr" in salary_text.lower()
+
+        # Extract the numeric values using a regex pattern that captures the salary range
+        salary_pattern = r"\$([\d,.]+)[kKmM]?/?.*\$([\d,.]+)[kKmM]?/?.*"
+        match = re.search(salary_pattern, salary_text)
+
+        if match:
+            lower_bound = match.group(1)
+            upper_bound = match.group(2)
+
+            # Convert to numeric (handle 'k' for thousand)
+            lower_bound = float(lower_bound.replace(',', ''))
+            upper_bound = float(upper_bound.replace(',', ''))
+
+            # Convert to annual if it's hourly
+            if is_hourly:
+                lower_bound *= 2080  # 2080 hours per year for a 40 hr/week job
+                upper_bound *= 2080
+            else:
+                # If 'k' is present in yearly salaries, multiply by 1000
+                lower_bound *= 1000 if 'k' in salary_text.lower() else 1
+                upper_bound *= 1000 if 'k' in salary_text.lower() else 1
+
+            return lower_bound, upper_bound
+
+        return None, None  # If parsing fails, return None
+
+
+    def parse_first_line_elements(self, elements):
+        job_attributes = {}
+        for element in elements:
+            text = element.text.lower()  # Convert text to lowercase for case-insensitive matching
+
+            if "$" in text:  # Check if the element contains a dollar sign
+                lower, upper = self.parse_salary_range(text)
+                if lower and upper:
+                    job_attributes['salary_lower_bound'] = lower
+                    job_attributes['salary_upper_bound'] = upper
+            
+            elif "level" in text:  # Check if the element contains the word "level"
+                job_attributes['explevel'] = text
+            
+            elif "time" in text:  # Check if the element contains the substring "time"
+                job_attributes['jobtype'] = text
+
+            elif text == 'onsite' or text == 'hybrid' or text == 'remote':
+                job_attributes['workplacetype'] = text
+
+        return job_attributes
+
         
     def parse_first_line_text(self, text):
         pattern = r'^(?:\$(\d+(?:,\d+)?)(/hr|/yr)?\s*-\s*\$(\d+(?:,\d+)?)(?:/hr|/yr)?\s*)?(Hybrid|Remote|On-site)?\s*(Full-time|Part-time|Contract|Temp|Volunteer)?\s*(Internship|Entry level|Associate|Mid-Senior level|Director|Executive)?'
@@ -191,8 +244,10 @@ class Head_Hunter_9000:
         sub_title_text = job_short.find_element(By.XPATH, job_short_xpaths.subtitle.xpath).text
         job_info.update(self.parse_sub_title_text(sub_title_text, job_short_xpaths.subtitle.regex))
 
-        first_line_text = " ".join(element.text for element in job_short.find_elements(By.XPATH, job_short_xpaths.firstline.xpath))
-        job_info.update(self.parse_first_line_text(first_line_text))
+        first_line_elements = job_short.find_elements(By.XPATH, job_short_xpaths.firstline.xpath)
+        job_info.update(self.parse_first_line_elements(first_line_elements))
+        # first_line_text = " ".join(element.text for element in job_short.find_elements(By.XPATH, job_short_xpaths.firstline.xpath))
+        # job_info.update(self.parse_first_line_text(first_line_text))
 
         second_line_text = job_short.find_element(By.XPATH, job_short_xpaths.secondline.xpath).text
         job_info.update(self.parse_second_line_text(second_line_text))
