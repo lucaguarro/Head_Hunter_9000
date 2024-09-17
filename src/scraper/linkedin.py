@@ -16,7 +16,9 @@ logging.config.dictConfig({
     'disable_existing_loggers': True
 })
 import logging
+import requests
 
+import scraper.xpaths as xpaths
 import re
 import data.architecture as da
 import data.manager as dm
@@ -46,7 +48,32 @@ class Head_Hunter_9000:
         print(self.redirect_url)
         opts = ChromeOptions()
         opts.add_argument("--window-size=2560,1440")
-        self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=opts)
+
+        # Debugger detection
+        self.debugger_port = 9222  # Change this if you use a different port
+        chromedriver_path = '/home/luca/Documents/Projects/Head_Hunter_9000/chromedriver-linux64/chromedriver'
+        
+        if self.is_debugger_running():
+            # Connect to existing Chrome session
+            print("Debugger detected. Connecting to existing Chrome session...")
+            opts.add_experimental_option("debuggerAddress", f"localhost:{self.debugger_port}")
+            self.logged_in = True  # Assume already logged in and on jobs page
+        else:
+            # Start a new Chrome instance
+            print("No debugger detected. Starting a new Chrome session...")
+            self.logged_in = False
+
+        self.driver = webdriver.Chrome(executable_path=chromedriver_path, options=opts)
+
+    def is_debugger_running(self):
+        """
+        Check if Chrome debugger is running by trying to connect to the debugging port.
+        """
+        try:
+            response = requests.get(f"http://localhost:{self.debugger_port}/json")
+            return response.status_code == 200
+        except requests.ConnectionError:
+            return False
 
     def __del__(self):
         self.driver.close()
@@ -56,24 +83,28 @@ class Head_Hunter_9000:
         url += urllib.parse.quote(self.redirect_url, safe='')
         self.driver.get(url)
 
-        username_input = self.driver.find_element(By.CSS_SELECTOR, 'form.login__form input[name=session_key]')
-        password_input = self.driver.find_element(By.CSS_SELECTOR, 'form.login__form input[name=session_password]')
+        login_page_xpaths = xpaths.root_node.login_main
+
+        username_input = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_username_input.xpath)
+        password_input = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_password_input.xpath)
 
         utils.simulate_human_typing(username_input, self.username)
         utils.simulate_human_typing(password_input, self.password)
 
         time.sleep(random.uniform(0.1, 0.5))
-        submit_btn = self.driver.find_element(By.CSS_SELECTOR, 'form.login__form button[type=submit]')
+        submit_btn = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_submit_button.xpath)
         submit_btn.click()
         logger.debug("Logged into linkedin.")
 
-    def scroll_through_sidebar(self):
+    def scroll_through_sidebar(self, jobapps_sidebar_xpath):
         scroll_cnt = 0
-        sidebar = self.driver.find_element(By.XPATH, "//div[@class='scaffold-layout__list ']/div[contains(@class, 'jobs-search-results-list')]")
-        while scroll_cnt < 5:
-            self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;', sidebar)
-            scroll_cnt += 1
-            time.sleep(random.uniform(1, 3))
+        sidebar = self.driver.find_element(By.XPATH, jobapps_sidebar_xpath.xpath)
+        if not self.is_debugger_running(): # skip this to save time during debugging
+            while scroll_cnt < 5:
+                self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;', sidebar)
+                scroll_cnt += 1
+                time.sleep(random.uniform(1, 3))
+        return sidebar
 
     def add_info_if_exists(self, job_dict, key, element, xpath_from_element):
         try:
@@ -82,21 +113,16 @@ class Head_Hunter_9000:
         except NoSuchElementException:
             pass
 
-    def parse_sub_title_text(self, text):
-        pattern = r'^(.*?) · (.*?) +(Reposted)? +(\d+ (?:hour|day|week|month)s? ago) +· +(\d+(?:,\d+)? applicants)$'
+    def parse_sub_title_text(self, text, pattern):
         match = re.match(pattern, text)
-
+        
         if match:
-            company_name = match.group(1)
-            location = match.group(2)
-            is_a_repost = True if match.group(3) == 'Reposted' else False
-            posted_time_ago = match.group(4)
-            num_applicants = match.group(5).replace(',', '')
+            location = match.group(1)  # Capture location
+            posted_time_ago = match.group(3)  # Capture posted time (group 3 now, due to optional "Reposted")
+            num_applicants = match.group(4).replace(',', '')  # Capture number of applicants, remove commas
 
             job_attributes = {
-                "companyname": company_name,
                 "location": location,
-                "isarepost": is_a_repost,
                 "postedtimeago": posted_time_ago,
                 "numapplicants": num_applicants
             }
@@ -117,6 +143,59 @@ class Head_Hunter_9000:
             return salary_lower_bound, salary_upper_bound
         else:
             return None, None
+
+    def parse_salary_range(self, salary_text):
+        # Check if the salary is hourly or yearly
+        is_hourly = "/hr" in salary_text.lower()
+
+        # Extract the numeric values using a regex pattern that captures the salary range
+        salary_pattern = r"\$([\d,.]+)[kKmM]?/?.*\$([\d,.]+)[kKmM]?/?.*"
+        match = re.search(salary_pattern, salary_text)
+
+        if match:
+            lower_bound = match.group(1)
+            upper_bound = match.group(2)
+
+            # Convert to numeric (handle 'k' for thousand)
+            lower_bound = float(lower_bound.replace(',', ''))
+            upper_bound = float(upper_bound.replace(',', ''))
+
+            # Convert to annual if it's hourly
+            if is_hourly:
+                lower_bound *= 2080  # 2080 hours per year for a 40 hr/week job
+                upper_bound *= 2080
+            else:
+                # If 'k' is present in yearly salaries, multiply by 1000
+                lower_bound *= 1000 if 'k' in salary_text.lower() else 1
+                upper_bound *= 1000 if 'k' in salary_text.lower() else 1
+
+            return lower_bound, upper_bound
+
+        return None, None  # If parsing fails, return None
+
+
+    def parse_first_line_elements(self, elements):
+        job_attributes = {}
+        for element in elements:
+            text = element.text.lower()  # Convert text to lowercase for case-insensitive matching
+
+            if "$" in text:  # Check if the element contains a dollar sign
+                lower, upper = self.parse_salary_range(text)
+                if lower and upper:
+                    job_attributes['salarylowerbound'] = lower
+                    job_attributes['salaryupperbound'] = upper
+            
+            elif "level" in text:  # Check if the element contains the word "level"
+                job_attributes['explevel'] = text
+            
+            elif "time" in text:  # Check if the element contains the substring "time"
+                job_attributes['jobtype'] = text
+
+            elif text == 'onsite' or text == 'hybrid' or text == 'remote':
+                job_attributes['workplacetype'] = text
+
+        return job_attributes
+
         
     def parse_first_line_text(self, text):
         pattern = r'^(?:\$(\d+(?:,\d+)?)(/hr|/yr)?\s*-\s*\$(\d+(?:,\d+)?)(?:/hr|/yr)?\s*)?(Hybrid|Remote|On-site)?\s*(Full-time|Part-time|Contract|Temp|Volunteer)?\s*(Internship|Entry level|Associate|Mid-Senior level|Director|Executive)?'
@@ -156,21 +235,27 @@ class Head_Hunter_9000:
             raise RegexParseError(text, text)
     
     def build_job_info(self, job_info_container, ext_job_id, job_board='linkedin'):
+        job_info_container_xpaths = xpaths.root_node.jobapps_main.jobinfo_container
+        job_short_xpaths = job_info_container_xpaths.job_short
+
         job_info = {}
-        job_short = job_info_container.find_element(By.XPATH, ".//div[contains(@class, 'jobs-unified-top-card__content--two-pane')]")
+        job_short = job_info_container.find_element(By.XPATH, job_short_xpaths.xpath)
 
-        sub_title_text = job_short.find_element(By.XPATH, "./div[@class='job-details-jobs-unified-top-card__primary-description']").text
-        job_info.update(self.parse_sub_title_text(sub_title_text))
+        sub_title_text = job_short.find_element(By.XPATH, job_short_xpaths.subtitle.xpath).text
+        job_info.update(self.parse_sub_title_text(sub_title_text, job_short_xpaths.subtitle.regex))
 
-        first_line_text = job_short.find_element(By.XPATH, "(.//li[@class='job-details-jobs-unified-top-card__job-insight'])[1]").text
-        job_info.update(self.parse_first_line_text(first_line_text))
+        first_line_elements = job_short.find_elements(By.XPATH, job_short_xpaths.firstline.xpath)
+        job_info.update(self.parse_first_line_elements(first_line_elements))
+        # first_line_text = " ".join(element.text for element in job_short.find_elements(By.XPATH, job_short_xpaths.firstline.xpath))
+        # job_info.update(self.parse_first_line_text(first_line_text))
 
-        second_line_text = job_short.find_element(By.XPATH, "(.//li[@class='job-details-jobs-unified-top-card__job-insight'])[2]").text
-        job_info.update(self.parse_second_line_text(second_line_text))
+        # second_line_text = job_short.find_element(By.XPATH, job_short_xpaths.secondline.xpath).text
+        # job_info.update(self.parse_second_line_text(second_line_text))
 
-        job_info['jobtitle'] = job_short.find_element(By.XPATH, ".//h2").text.strip()
-        job_info['description'] = html2text.html2text(job_info_container.find_element(By.XPATH, "//article//span").get_attribute("innerHTML"))
-        job_info['appsubmitted'] = True if job_short.find_elements(By.XPATH, "//span[@class='artdeco-inline-feedback__message']") else False
+        job_info['companyname'] = job_short.find_element(By.XPATH, job_short_xpaths.companyname.xpath).text.strip()
+        job_info['jobtitle'] = job_short.find_element(By.XPATH, job_short_xpaths.jobtitle.xpath).text.strip()
+        job_info['description'] = job_info_container.find_element(By.XPATH, job_info_container_xpaths.description.xpath).text
+        job_info['appsubmitted'] = True if job_short.find_elements(By.XPATH, job_short_xpaths.appsubmitted.xpath) else False
         job_info['extjobid'] = ext_job_id
 
         job_info['jobboardid'] = job_board
@@ -273,18 +358,20 @@ class Head_Hunter_9000:
         #     rvw_btn = hh_9000.driver.find_elements(By.XPATH, "//span[text()='Review']/ancestor::button")
         #     if rvw_btn:
         #         return rvw_btn[0]
+        jobapps_main_xpaths = xpaths.root_node.jobapps_main
+        jobapp_popup_xpaths = jobapps_main_xpaths.jobapp_popup
+        questionform_xpaths = jobapp_popup_xpaths.question_form
+        
+        easy_apply_button = job_info_container.find_element(By.XPATH, jobapps_main_xpaths.jobinfo_container.easyapply_button.xpath)
+        easy_apply_button.click()
 
+        jobapp_popup = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.xpath)
         def get_next_btn():
-            nxt_btn = self.driver.find_elements(By.XPATH, "//span[text()='Next']/ancestor::button")
+            nxt_btn = jobapp_popup.find_elements(By.XPATH, jobapp_popup_xpaths.nextpage_button.xpath)
             if nxt_btn:
                 return nxt_btn[0]
             
             return None
-        
-        easy_apply_button = job_info_container.find_element(By.XPATH, "//button[contains(@class, 'jobs-apply-button')]")
-        easy_apply_button.click()
-
-        question_form = self.driver.find_element(By.XPATH, "//div[@class='pb4']")
 
         fr_prompts = []
         dd_prompts_and_options = []
@@ -293,11 +380,11 @@ class Head_Hunter_9000:
         next_btn = True
         while next_btn:
             next_btn = get_next_btn()
-            question_form = self.driver.find_element(By.XPATH, "//div[@class='pb4']")
+            question_form = jobapp_popup.find_element(By.XPATH, questionform_xpaths.xpath)
 
-            freeresponse_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component]")
-            dropdown_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-text-entity-list-form-component]")
-            radiobutton_question_containers = question_form.find_elements(By.XPATH, "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]")
+            freeresponse_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.freeresponse_question_container.xpath)
+            dropdown_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.dropdown_question_container.xpath)
+            radiobutton_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.radiobutton_question_container.xpath)
 
             self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers)
 
@@ -310,9 +397,9 @@ class Head_Hunter_9000:
 
         all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options}
 
-        close_button = self.driver.find_element(By.XPATH, "//button[@data-test-modal-close-btn]")
+        close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
         close_button.click()
-        close_button2 = self.driver.find_element(By.XPATH, "//button[@data-test-dialog-secondary-btn]")
+        close_button2 = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button2.xpath)
         close_button2.click()
 
         return all_questions
@@ -338,19 +425,20 @@ class Head_Hunter_9000:
 
     def scan_job_apps(self, apply_mode_on=False):
         time.sleep(random.uniform(1, 2))
-        self.scroll_through_sidebar()
-        job_listings = self.driver.find_elements(By.XPATH, "//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]")
+        jobapps_sidebar_xpaths = xpaths.root_node.jobapps_main.jobapps_sidebar
+        jobs_sidebar = self.scroll_through_sidebar(jobapps_sidebar_xpaths)
+        job_listings = jobs_sidebar.find_elements(By.XPATH, jobapps_sidebar_xpaths.sidebar_listings.xpath)
 
         for i in range(len(job_listings)):
             just_added = False
             time.sleep(random.uniform(1, 2))
-            link = job_listings[i].find_element(By.XPATH, ".//a[contains(@class, 'job-card-container__link') and contains(@class, 'job-card-list__title')]")
+            link = job_listings[i].find_element(By.XPATH, jobapps_sidebar_xpaths.sidebar_listings.listing_link.xpath)
             link.click()
             time.sleep(random.uniform(1, 2))
 
             try:
                 ext_job_id = self.get_job_id(self.driver.current_url)
-                job_info_container = self.driver.find_element(By.XPATH, "//div[@class='job-view-layout jobs-details']")
+                job_info_container = self.driver.find_element(By.XPATH, xpaths.root_node.jobapps_main.jobinfo_container.xpath)
                 job_info = self.build_job_info(job_info_container, ext_job_id)
                 if not job_info['appsubmitted']: # can also do a check here to see if job already exists in local db TODO
                     all_questions = self.scrape_questions(job_info_container)

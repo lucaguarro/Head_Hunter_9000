@@ -1,0 +1,2 @@
+Q: City* <-- must be a valid city
+Q: Mobile phone number <-- must be numeric

@@ -1,5 +1,6 @@
+xpaths.txt
 /notes/do_next.txt
-chromedriver
+/chromedriver-linux64
 *.zip
 config.ini
 basics.py
