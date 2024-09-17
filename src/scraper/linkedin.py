@@ -182,8 +182,8 @@ class Head_Hunter_9000:
             if "$" in text:  # Check if the element contains a dollar sign
                 lower, upper = self.parse_salary_range(text)
                 if lower and upper:
-                    job_attributes['salary_lower_bound'] = lower
-                    job_attributes['salary_upper_bound'] = upper
+                    job_attributes['salarylowerbound'] = lower
+                    job_attributes['salaryupperbound'] = upper
             
             elif "level" in text:  # Check if the element contains the word "level"
                 job_attributes['explevel'] = text
@@ -239,7 +239,7 @@ class Head_Hunter_9000:
         job_short_xpaths = job_info_container_xpaths.job_short
 
         job_info = {}
-        job_short = job_info_container.find_element(By.XPATH, job_info_container_xpaths.xpath)
+        job_short = job_info_container.find_element(By.XPATH, job_short_xpaths.xpath)
 
         sub_title_text = job_short.find_element(By.XPATH, job_short_xpaths.subtitle.xpath).text
         job_info.update(self.parse_sub_title_text(sub_title_text, job_short_xpaths.subtitle.regex))
@@ -249,12 +249,12 @@ class Head_Hunter_9000:
         # first_line_text = " ".join(element.text for element in job_short.find_elements(By.XPATH, job_short_xpaths.firstline.xpath))
         # job_info.update(self.parse_first_line_text(first_line_text))
 
-        second_line_text = job_short.find_element(By.XPATH, job_short_xpaths.secondline.xpath).text
-        job_info.update(self.parse_second_line_text(second_line_text))
+        # second_line_text = job_short.find_element(By.XPATH, job_short_xpaths.secondline.xpath).text
+        # job_info.update(self.parse_second_line_text(second_line_text))
 
         job_info['companyname'] = job_short.find_element(By.XPATH, job_short_xpaths.companyname.xpath).text.strip()
         job_info['jobtitle'] = job_short.find_element(By.XPATH, job_short_xpaths.jobtitle.xpath).text.strip()
-        job_info['description'] = html2text.html2text(job_info_container.find_element(By.XPATH, "//article//span").get_attribute("innerHTML"))
+        job_info['description'] = job_info_container.find_element(By.XPATH, job_info_container_xpaths.description.xpath).text
         job_info['appsubmitted'] = True if job_short.find_elements(By.XPATH, job_short_xpaths.appsubmitted.xpath) else False
         job_info['extjobid'] = ext_job_id
 
@@ -358,20 +358,20 @@ class Head_Hunter_9000:
         #     rvw_btn = hh_9000.driver.find_elements(By.XPATH, "//span[text()='Review']/ancestor::button")
         #     if rvw_btn:
         #         return rvw_btn[0]
-        jobapp_xpaths = xpaths.linkedin.jobapp_popup
-        questionform_xpaths = jobapp_xpaths.question_form
+        jobapps_main_xpaths = xpaths.root_node.jobapps_main
+        jobapp_popup_xpaths = jobapps_main_xpaths.jobapp_popup
+        questionform_xpaths = jobapp_popup_xpaths.question_form
+        
+        easy_apply_button = job_info_container.find_element(By.XPATH, jobapps_main_xpaths.jobinfo_container.easyapply_button.xpath)
+        easy_apply_button.click()
 
+        jobapp_popup = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.xpath)
         def get_next_btn():
-            nxt_btn = self.driver.find_elements(By.XPATH, jobapp_xpaths.nextpage_button.xpath)
+            nxt_btn = jobapp_popup.find_elements(By.XPATH, jobapp_popup_xpaths.nextpage_button.xpath)
             if nxt_btn:
                 return nxt_btn[0]
             
             return None
-        
-        easy_apply_button = job_info_container.find_element(By.XPATH, jobapp_xpaths.easyapplybutton.xpath)
-        easy_apply_button.click()
-
-        # question_form = self.driver.find_element(By.XPATH, "//div[@class='pb4']")
 
         fr_prompts = []
         dd_prompts_and_options = []
@@ -380,11 +380,11 @@ class Head_Hunter_9000:
         next_btn = True
         while next_btn:
             next_btn = get_next_btn()
-            question_form = self.driver.find_element(By.XPATH, "//div[@class='pb4']")
+            question_form = jobapp_popup.find_element(By.XPATH, questionform_xpaths.xpath)
 
             freeresponse_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.freeresponse_question_container.xpath)
             dropdown_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.dropdown_question_container.xpath)
-            radiobutton_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.radiobutton_container.xpath)
+            radiobutton_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.radiobutton_question_container.xpath)
 
             self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers)
 
@@ -397,9 +397,9 @@ class Head_Hunter_9000:
 
         all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options}
 
-        close_button = self.driver.find_element(By.XPATH, jobapp_xpaths.closepage_button.xpath)
+        close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
         close_button.click()
-        close_button2 = self.driver.find_element(By.XPATH, jobapp_xpaths.closepage_button2.xpath)
+        close_button2 = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button2.xpath)
         close_button2.click()
 
         return all_questions

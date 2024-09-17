@@ -60,21 +60,21 @@
                                 }
                             },
                             "description": {
-                                "xpath": "//article//span"
+                                "xpath": "//div[@class='job-details-module__content']"
+                            },
+                            "easyapply_button": {
+                                "xpath": "//button[contains(@class, 'jobs-apply-button')]"
                             }
                         }
                     },
                     "jobapp_popup": {
-                        "xpath": "",
+                        "xpath": "//div[contains(@class, 'artdeco-modal-overlay')]/div[contains(@class, 'artdeco-modal') and contains(@class, 'jobs-easy-apply-modal')]",
                         "children": {
                             "nextpage_button": {
-                                "xpath": "//span[text()='Next']/ancestor::button"
-                            },
-                            "easyapply_button": {
-                                "xpath": "//button[contains(@class, 'jobs-apply-button')]"
+                                "xpath": ".//span[text()='Next']/ancestor::button"
                             },
                             "question_form": {
-                                "xpath": "//div[@class='pb4']",
+                                "xpath": ".//div[@class='pb4']",
                                 "children": {
                                     "freeresponse_question_container": {
                                         "xpath": "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component]"
@@ -88,10 +88,10 @@
                                 }
                             },
                             "closepage_button": {
-                                "xpath": "//button[@data-test-modal-close-btn]"
+                                "xpath": ".//button[@data-test-modal-close-btn]"
                             },
                             "closepage_button2": {
-                                "xpath": "//button[@data-test-dialog-secondary-btn]"
+                                "xpath": ".//button[@data-test-dialog-secondary-btn]"
                             }
                         }
                     }
