@@ -1,3 +1,4 @@
+# General project and logs
 xpaths.txt
 /notes/do_next.txt
 /chromedriver-linux64
@@ -5,12 +6,14 @@ xpaths.txt
 config.ini
 basics.py
 Database
+*.log
+Logs/
+
+# Python cache and database files
 *.pyc
+__pycache__/
 *.db
 *.db-journal
-*.log
-Logs
-__pycache__
 
 # C++ objects and libs
 *.slo
@@ -42,7 +45,8 @@ ui_*.h
 *.qmlc
 *.jsc
 Makefile*
-*build-*
+build/
+build-*/          # Include any build directories
 *.qm
 *.prl
 
@@ -66,3 +70,9 @@ compile_commands.json
 *creator.user*
 
 *_qmlcache.qrc
+
+# Generated translation files (optional)
+*.qm
+
+# Ignore asset files (if not version-controlled)
+assets/icons/*.svg
