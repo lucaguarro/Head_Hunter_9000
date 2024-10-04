@@ -7,6 +7,7 @@
 #include <QLineEdit>
 #include <QRadioButton>
 #include <QComboBox>
+#include <QScrollArea>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -17,10 +18,19 @@ MainWindow::MainWindow(QWidget *parent)
     // Initialize the database manager with the path to the SQLite file
     dbManager = new DatabaseManager("/home/luca/Documents/Projects/Head_Hunter_9000/example.db");
 
+    // Create a QScrollArea and set MainPanel as its widget
+    QScrollArea *scrollArea = new QScrollArea(this);
+    scrollArea->setWidget(ui->MainPanel);  // Set MainPanel as the scrollable content
+    scrollArea->setWidgetResizable(true);  // Allow the scroll area to resize with content
+
+    // Replace the MainPanel in the central widget layout with the scroll area
+    ui->centralwidget->layout()->addWidget(scrollArea);
+
     if (dbManager->connectToDatabase()) {
         loadQuestions();
     }
 }
+
 
 MainWindow::~MainWindow() {
     delete ui;
