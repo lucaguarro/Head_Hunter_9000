@@ -25,7 +25,7 @@ private:
     DatabaseManager *dbManager;
 
     // Function to dynamically add question widgets based on the question type
-    void addQuestionToPanel(const QString &questionText, const QString &questionType);
+    void addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId);
 
     // Function to load and display questions from the database
     void loadQuestions();

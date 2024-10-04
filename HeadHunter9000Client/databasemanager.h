@@ -11,6 +11,7 @@ public:
     bool connectToDatabase();
     QSqlQuery fetchQuestions();
 
+    QList<QPair<QString, int> > fetchOptionsForQuestion(const QString &questionType, int questionId);
 private:
     QSqlDatabase db;
     QString databasePath;

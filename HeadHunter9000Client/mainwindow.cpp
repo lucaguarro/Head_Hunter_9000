@@ -33,40 +33,56 @@ void MainWindow::loadQuestions() {
     while (query.next()) {
         QString questionText = query.value("question").toString();
         QString questionType = query.value("type").toString();
+        int questionId = query.value("id").toInt();
 
         qDebug() << "Question:" << questionText << "Type:" << questionType;
 
         // Add each question to the panel
-        addQuestionToPanel(questionText, questionType);
+        addQuestionToPanel(questionText, questionType, questionId);
     }
 }
 
-void MainWindow::addQuestionToPanel(const QString &questionText, const QString &questionType) {
+void MainWindow::addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId) {
     QVBoxLayout *mainPanelLayout = qobject_cast<QVBoxLayout *>(ui->MainPanel->layout());
 
     // Add a label for the question text
     QLabel *questionLabel = new QLabel(questionText);
     mainPanelLayout->addWidget(questionLabel);
 
+    QList<QPair<QString, int>> options;  // Declare options before the if statement
+
+    if (questionType != "free response"){
+        options = dbManager->fetchOptionsForQuestion(questionType, questionId);
+    }
+
     // Depending on the question type, create the appropriate input widget
-    if (questionType == "FREERESPONSE") {
+    if (questionType == "free response") {
         QLineEdit *freeResponseInput = new QLineEdit();
+        freeResponseInput->setProperty("questionId", questionId);
         mainPanelLayout->addWidget(freeResponseInput);
-    } else if (questionType == "RADIOBUTTON") {
+    } else if (questionType == "radio buttons") {
         QWidget *radioGroupWidget = new QWidget();
         QVBoxLayout *radioLayout = new QVBoxLayout(radioGroupWidget);
-        QRadioButton *option1 = new QRadioButton("Option 1");
-        QRadioButton *option2 = new QRadioButton("Option 2");
 
-        radioLayout->addWidget(option1);
-        radioLayout->addWidget(option2);
+        radioGroupWidget->setProperty("questionId", questionId);
+
+        // Populate radio buttons with options from the database
+        for (const auto &option : options) {
+            QRadioButton *radioButton = new QRadioButton(option.first);  // Use option text
+            radioButton->setProperty("optionId", option.second);  // Store option ID as property
+            radioLayout->addWidget(radioButton);
+        }
 
         mainPanelLayout->addWidget(radioGroupWidget);
-    } else if (questionType == "DROPDOWN") {
+    } else if (questionType == "drop down") {
         QComboBox *dropdown = new QComboBox();
-        dropdown->addItem("Option 1");
-        dropdown->addItem("Option 2");
 
+        // Populate dropdown with options from the database
+        for (const auto &option : options) {
+            dropdown->addItem(option.first, option.second);  // Use option text, and store option ID
+        }
+
+        dropdown->setProperty("questionId", questionId);
         mainPanelLayout->addWidget(dropdown);
     }
 }
