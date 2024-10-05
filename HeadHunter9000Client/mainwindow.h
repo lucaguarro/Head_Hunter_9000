@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QPushButton>
 #include "databasemanager.h"
 
 QT_BEGIN_NAMESPACE
@@ -24,6 +25,8 @@ private slots:
 private:
     Ui::MainWindow *ui;
 
+    QPushButton* previousButton;
+
     // Member for managing the database connection
     DatabaseManager *dbManager;
 
@@ -34,6 +37,11 @@ private:
     void loadQuestions();
     void setupScrollAreaAndSaveButton();
     void saveData();
+    void onSidebarButtonClicked(QPushButton *clickedButton, const QList<QPushButton *> &buttons);
+    void cleanUpAnswerQuestionsPage();
+    void cleanUpSeeAllQuestionsPage();
+    void cleanUpScraperConfigPage();
+    void cleanUpJobSearchCriteriaPage();
 };
 
 #endif // MAINWINDOW_H

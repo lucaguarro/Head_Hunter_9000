@@ -12,6 +12,7 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , previousButton(nullptr)
 {
     ui->setupUi(this);
 
@@ -27,8 +28,59 @@ MainWindow::MainWindow(QWidget *parent)
     ui->scrollAreaWidgetContents->setLayout(scrollAreaLayout);
     ui->scrollArea->setWidget(ui->scrollAreaWidgetContents);
     ui->scrollArea->setWidgetResizable(true);
+
+    QList<QPushButton*> sidebar_buttons = {ui->AnswerQuestionsBtn, ui->ScraperConfigBtn, ui->SeeAllQuestionsBtn, ui->JobSearchCriteriaBtn};
+    for (auto button : sidebar_buttons) {
+        connect(button, &QPushButton::clicked, this, [=]() {
+            onSidebarButtonClicked(button, sidebar_buttons);
+        });
+    }
 }
 
+void MainWindow::cleanUpAnswerQuestionsPage() {
+    qDebug() << "Ayo";
+}
+
+void MainWindow::cleanUpSeeAllQuestionsPage() {
+    qDebug() << "Ayo2";
+}
+
+void MainWindow::cleanUpScraperConfigPage() {
+    qDebug() << "Ayo3";
+}
+
+void MainWindow::cleanUpJobSearchCriteriaPage() {
+    qDebug() << "Ayo4";
+}
+
+// Slot function to handle button click logic
+void MainWindow::onSidebarButtonClicked(QPushButton* clickedButton, const QList<QPushButton*>& buttons) {
+    // Check if there was a previously disabled button
+    if (previousButton != nullptr) {
+        // Perform UI cleanup based on the previously disabled button
+        if (previousButton == ui->AnswerQuestionsBtn) {
+            cleanUpAnswerQuestionsPage();
+        } else if (previousButton == ui->SeeAllQuestionsBtn) {
+            cleanUpSeeAllQuestionsPage();
+        } else if (previousButton == ui->ScraperConfigBtn) {
+            cleanUpScraperConfigPage();
+        } else if (previousButton == ui->JobSearchCriteriaBtn) {
+            cleanUpJobSearchCriteriaPage();
+        }
+    }
+
+    // Loop through the buttons and enable/disable them appropriately
+    for (auto button : buttons) {
+        if (button == clickedButton) {
+            button->setDisabled(true);  // Disable the clicked button
+        } else {
+            button->setEnabled(true);  // Enable all the other buttons
+        }
+    }
+
+    // Store the clicked button as the newly disabled button
+    previousButton = clickedButton;
+}
 
 MainWindow::~MainWindow() {
     delete ui;
@@ -96,7 +148,7 @@ void MainWindow::addQuestionToPanel(const QString &questionText, const QString &
 }
 
 void MainWindow::setupScrollAreaAndSaveButton() {
-    // Create a vertical layout
+    // Create a vertical layout for the scroll area and save button
     QVBoxLayout *verticalLayout = qobject_cast<QVBoxLayout *>(ui->scrollAreaContainer->layout());
 
     // Ensure the scrollArea is already created and set up
@@ -105,25 +157,25 @@ void MainWindow::setupScrollAreaAndSaveButton() {
         return;
     }
 
-    // Add the scrollArea to the layout
-    // verticalLayout->addWidget(ui->scrollArea);
-
-    // Add a vertical stretch to push the Save button to the bottom
-    // verticalLayout->addStretch(1);  // 1 is the stretch factor
-
     // Create the Save button
-    QPushButton *saveButton = new QPushButton("Save");
-    saveButton->setFixedHeight(40);  // Set a fixed height for the button (optional)
-    saveButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);  // Optional: control the size policy
+    QPushButton *saveButton = new QPushButton("Save Answers");
+    saveButton->setFixedHeight(26);  // Set a fixed height for the button (optional)
+    saveButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);  // Set fixed size policy
 
     // Connect the Save button's signal to the save function
     connect(saveButton, &QPushButton::clicked, this, &MainWindow::saveData);
 
-    // Add the Save button to the layout at the bottom
-    verticalLayout->addWidget(saveButton);
+    // Create a horizontal layout for the Save button and the spacer
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
 
-    // Set the layout to the parent widget (e.g., centralwidget)
-    // ui->centralwidget->setLayout(verticalLayout);
+    // Add a horizontal spacer to push the Save button to the right
+    buttonLayout->addStretch();  // This will push the button to the right
+
+    // Add the Save button to the horizontal layout
+    buttonLayout->addWidget(saveButton);
+
+    // Add the horizontal layout (with the spacer and Save button) to the vertical layout
+    verticalLayout->addLayout(buttonLayout);
 }
 
 // Function to handle the Save button action
@@ -136,6 +188,7 @@ void MainWindow::saveData() {
 
 void MainWindow::on_AnswerQuestionsBtn_clicked()
 {
+    ui->AnswerQuestionsBtn->setEnabled(false);
     setupScrollAreaAndSaveButton();
     if (dbManager->connectToDatabase()) {
         loadQuestions();
