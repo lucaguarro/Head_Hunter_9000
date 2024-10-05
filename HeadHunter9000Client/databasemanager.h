@@ -8,13 +8,19 @@
 class DatabaseManager {
 public:
     DatabaseManager(const QString &databasePath);
+
     bool connectToDatabase();
     QSqlQuery fetchQuestions();
+    QList<QPair<QString, int>> fetchOptionsForQuestion(const QString &questionType, int questionId);
 
-    QList<QPair<QString, int> > fetchOptionsForQuestion(const QString &questionType, int questionId);
+    // New methods for updating the answers
+    bool updateFreeResponseAnswer(int questionId, const QString &answerText);
+    bool updateRadioButtonAnswer(int questionId, int optionId);
+    bool updateDropdownAnswer(int questionId, int optionId);
+
 private:
-    QSqlDatabase db;
     QString databasePath;
+    QSqlDatabase db;
 };
 
 #endif // DATABASEMANAGER_H

@@ -132,6 +132,54 @@ void AskQuestionsUI::createSaveButton(QVBoxLayout *mainAreaLayout) {
 
 void AskQuestionsUI::saveAnswers() {
     qDebug() << "Save button clicked!";
-    // Add your save logic here
+
+    // Iterate over all widgets in the contentLayout
+    for (int i = 0; i < contentLayout->count(); ++i) {
+        QWidget *widget = contentLayout->itemAt(i)->widget();
+
+        if (!widget) {
+            continue;  // If it's not a widget, skip
+        }
+
+        // Handle free response questions (QLineEdit)
+        if (QLineEdit *freeResponseInput = qobject_cast<QLineEdit*>(widget)) {
+            int questionId = freeResponseInput->property("questionId").toInt();
+            QString answerText = freeResponseInput->text();
+
+            if (!dbManager->updateFreeResponseAnswer(questionId, answerText)) {
+                qDebug() << "Failed to update free response answer!";
+            }
+
+            // Handle radio button questions (inside QWidget)
+        } else if (QComboBox *dropdown = qobject_cast<QComboBox*>(widget)) {
+            int questionId = dropdown->property("questionId").toInt();
+            int selectedOptionId = dropdown->currentData().toInt();  // Get the optionId for the selected item
+
+            if (!dbManager->updateDropdownAnswer(questionId, selectedOptionId)) {
+                qDebug() << "Failed to update dropdown answer!";
+            }
+        } else if (QWidget *radioGroupWidget = qobject_cast<QWidget*>(widget)) {
+            int questionId = radioGroupWidget->property("questionId").toInt();
+
+            // Find the selected radio button
+            QVBoxLayout *radioLayout = qobject_cast<QVBoxLayout*>(radioGroupWidget->layout());
+            if (radioLayout) {
+                for (int j = 0; j < radioLayout->count(); ++j) {
+                    QRadioButton *radioButton = qobject_cast<QRadioButton*>(radioLayout->itemAt(j)->widget());
+                    if (radioButton && radioButton->isChecked()) {
+                        int optionId = radioButton->property("optionId").toInt();
+
+                        if (!dbManager->updateRadioButtonAnswer(questionId, optionId)) {
+                            qDebug() << "Failed to update radio button answer!";
+                        }
+                        break;  // Stop after finding the selected radio button
+                    }
+                }
+            }
+
+            // Handle dropdown questions (QComboBox)
+        }
+    }
 }
+
 
