@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QVBoxLayout>
+#include "askquestionsui.h"
 #include "databasemanager.h"
 
 QT_BEGIN_NAMESPACE
@@ -25,6 +26,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    AskQuestionsUI* askquestionsui;
 
     QPushButton* previousButton;
 

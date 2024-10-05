@@ -9,27 +9,39 @@
 #include <QRadioButton>
 #include <QComboBox>
 
-AskQuestionsUI::AskQuestionsUI(QVBoxLayout *mainAreaLayout, QWidget *parent, DatabaseManager *dbManager)
+AskQuestionsUI::AskQuestionsUI(QWidget *parent, DatabaseManager *dbManager)
     : QWidget(parent)
     , dbManager(dbManager)
 {
-    // Step 1: Create the QScrollArea
-    QScrollArea* scrollArea = new QScrollArea(this);
-    QWidget* scrollContent = new QWidget();
-    contentLayout = new QVBoxLayout(scrollContent);  // Set a layout for the scroll content
+    // Step 1: Create a layout for AskQuestionsUI
+    QVBoxLayout* mainLayout = new QVBoxLayout(this);  // Set layout on 'this', which is AskQuestionsUI
 
+    // Step 2: Create the QScrollArea
+    QScrollArea* scrollArea = new QScrollArea(this);  // 'this' as parent ensures Qt manages it
+    scrollContent = new QWidget(scrollArea);          // scrollContent's parent is scrollArea
+    contentLayout = new QVBoxLayout(scrollContent);   // Set a layout for the scroll content
+
+    // Step 3: Add the scroll area to the main layout
+    scrollContent->setLayout(contentLayout);
     scrollArea->setWidget(scrollContent);
-    scrollArea->setWidgetResizable(true);  // Ensure the scroll area resizes properly
+    scrollArea->setWidgetResizable(true);
 
-    // Step 2: Add the scroll area to the main area layout
-    mainAreaLayout->addWidget(scrollArea);
+    // Add the scroll area to the main layout of AskQuestionsUI
+    mainLayout->addWidget(scrollArea);
+    this->setLayout(mainLayout);
 
-    // Step 3: Create and add the Save button
-    createSaveButton(mainAreaLayout);
+    // Step 4: Create and add the Save button
+    createSaveButton(mainLayout);
 
+    // Load questions from the database
     if (dbManager->connectToDatabase()) {
         loadQuestions();
     }
+}
+
+// Destructor: No need to manually delete child widgets, Qt will handle it
+AskQuestionsUI::~AskQuestionsUI() {
+    qDebug() << "AskQuestionsUI has been destroyed, and all widgets are removed.";
 }
 
 // Function to return the content layout for adding questions dynamically
@@ -54,36 +66,36 @@ void AskQuestionsUI::loadQuestions() {
 
 void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId) {
     // Add a label for the question text
-    QLabel *questionLabel = new QLabel(questionText);
+    QLabel *questionLabel = new QLabel(questionText, this);  // Assign 'this' as the parent
     this->contentLayout->addWidget(questionLabel);
 
     QList<QPair<QString, int>> options;  // Declare options before the if statement
 
-    if (questionType != "free response"){
+    if (questionType != "free response") {
         options = dbManager->fetchOptionsForQuestion(questionType, questionId);
     }
 
     // Depending on the question type, create the appropriate input widget
     if (questionType == "free response") {
-        QLineEdit *freeResponseInput = new QLineEdit();
+        QLineEdit *freeResponseInput = new QLineEdit(this);  // Assign 'this' as the parent
         freeResponseInput->setProperty("questionId", questionId);
         this->contentLayout->addWidget(freeResponseInput);
     } else if (questionType == "radio buttons") {
-        QWidget *radioGroupWidget = new QWidget();
+        QWidget *radioGroupWidget = new QWidget(this);  // Assign 'this' as the parent
         QVBoxLayout *radioLayout = new QVBoxLayout(radioGroupWidget);
 
         radioGroupWidget->setProperty("questionId", questionId);
 
         // Populate radio buttons with options from the database
         for (const auto &option : options) {
-            QRadioButton *radioButton = new QRadioButton(option.first);  // Use option text
+            QRadioButton *radioButton = new QRadioButton(option.first, this);  // Assign 'this' as the parent
             radioButton->setProperty("optionId", option.second);  // Store option ID as property
             radioLayout->addWidget(radioButton);
         }
 
         this->contentLayout->addWidget(radioGroupWidget);
     } else if (questionType == "drop down") {
-        QComboBox *dropdown = new QComboBox();
+        QComboBox *dropdown = new QComboBox(this);  // Assign 'this' as the parent
 
         // Populate dropdown with options from the database
         for (const auto &option : options) {
@@ -97,7 +109,7 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
 
 // Function to create the Save button and add it to the mainAreaLayout
 void AskQuestionsUI::createSaveButton(QVBoxLayout *mainAreaLayout) {
-    QPushButton *saveButton = new QPushButton("Save Answers");
+    QPushButton *saveButton = new QPushButton("Save Answers", this);  // 'this' as parent ensures cleanup
     saveButton->setFixedHeight(26);  // Set a fixed height for the button
     saveButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);  // Set fixed size policy
 

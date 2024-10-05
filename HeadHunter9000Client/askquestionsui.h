@@ -17,9 +17,13 @@ public:
     // Provides access to the content layout (for adding questions)
     QVBoxLayout* getContentLayout() const;
 
-    AskQuestionsUI(QVBoxLayout *mainAreaLayout, QWidget *parent, DatabaseManager *dbmanager);
+    AskQuestionsUI(QWidget *parent, DatabaseManager *dbmanager);
+
+    ~AskQuestionsUI();
 private:
     QVBoxLayout *contentLayout;
+    QWidget *scrollContent;
+    QHBoxLayout *buttonLayout;
 
     // Member for managing the database connection
     DatabaseManager *dbManager;
