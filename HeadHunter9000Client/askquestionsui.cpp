@@ -93,6 +93,7 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
             radioLayout->addWidget(radioButton);
         }
 
+        radioGroupWidget->setProperty("questionId", questionId);
         this->contentLayout->addWidget(radioGroupWidget);
     } else if (questionType == "drop down") {
         QComboBox *dropdown = new QComboBox(this);  // Assign 'this' as the parent
@@ -114,10 +115,7 @@ void AskQuestionsUI::createSaveButton(QVBoxLayout *mainAreaLayout) {
     saveButton->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);  // Set fixed size policy
 
     // Connect the Save button's signal to your save logic
-    connect(saveButton, &QPushButton::clicked, this, []() {
-        qDebug() << "Save button clicked!";
-        // Add your save logic here
-    });
+    connect(saveButton, &QPushButton::clicked, this, &AskQuestionsUI::saveAnswers);
 
     // Create a horizontal layout for the Save button and the spacer
     QHBoxLayout *buttonLayout = new QHBoxLayout();
@@ -131,3 +129,9 @@ void AskQuestionsUI::createSaveButton(QVBoxLayout *mainAreaLayout) {
     // Step 4: Add the horizontal layout (with the spacer and Save button) to the main area layout
     mainAreaLayout->addLayout(buttonLayout);
 }
+
+void AskQuestionsUI::saveAnswers() {
+    qDebug() << "Save button clicked!";
+    // Add your save logic here
+}
+

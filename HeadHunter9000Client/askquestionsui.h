@@ -31,6 +31,7 @@ private:
     void createSaveButton(QVBoxLayout *mainAreaLayout);
     void addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId);
     void loadQuestions();
+    void saveAnswers();
 };
 
 #endif // ASKQUESTIONSUI_H
