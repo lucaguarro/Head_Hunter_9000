@@ -18,6 +18,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+private slots:
+    void on_AnswerQuestionsBtn_clicked();
+
 private:
     Ui::MainWindow *ui;
 
@@ -29,6 +32,8 @@ private:
 
     // Function to load and display questions from the database
     void loadQuestions();
+    void setupScrollAreaAndSaveButton();
+    void saveData();
 };
 
 #endif // MAINWINDOW_H
