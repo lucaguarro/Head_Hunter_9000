@@ -1,3 +1,4 @@
+#include "askquestionsui.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QSqlQuery>
@@ -23,11 +24,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->splitter->setStretchFactor(0, 0);  // SidebarMenu gets no stretch (fixed size)
     ui->splitter->setStretchFactor(1, 1);  // scrollArea stretches to fill the remaining space
     ui->splitter->setSizes({200,1});
-
-    QVBoxLayout *scrollAreaLayout = new QVBoxLayout(ui->scrollAreaWidgetContents);  // Create and assign layout
-    ui->scrollAreaWidgetContents->setLayout(scrollAreaLayout);
-    ui->scrollArea->setWidget(ui->scrollAreaWidgetContents);
-    ui->scrollArea->setWidgetResizable(true);
 
     QList<QPushButton*> sidebar_buttons = {ui->AnswerQuestionsBtn, ui->ScraperConfigBtn, ui->SeeAllQuestionsBtn, ui->JobSearchCriteriaBtn};
     for (auto button : sidebar_buttons) {
@@ -87,7 +83,7 @@ MainWindow::~MainWindow() {
     delete dbManager;
 }
 
-void MainWindow::loadQuestions() {
+void MainWindow::loadQuestions(QVBoxLayout *contentLayout) {
     QSqlQuery query = dbManager->fetchQuestions();  // Fetch questions using the DatabaseManager
 
     while (query.next()) {
@@ -98,16 +94,14 @@ void MainWindow::loadQuestions() {
         qDebug() << "Question:" << questionText << "Type:" << questionType;
 
         // Add each question to the panel
-        addQuestionToPanel(questionText, questionType, questionId);
+        addQuestionToPanel(contentLayout, questionText, questionType, questionId);
     }
 }
 
-void MainWindow::addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId) {
-    QVBoxLayout *scrollAreaLayout = qobject_cast<QVBoxLayout *>(ui->scrollArea->widget()->layout());
-
+void MainWindow::addQuestionToPanel(QVBoxLayout *contentLayout, const QString &questionText, const QString &questionType, int questionId) {
     // Add a label for the question text
     QLabel *questionLabel = new QLabel(questionText);
-    scrollAreaLayout->addWidget(questionLabel);
+    contentLayout->addWidget(questionLabel);
 
     QList<QPair<QString, int>> options;  // Declare options before the if statement
 
@@ -119,7 +113,7 @@ void MainWindow::addQuestionToPanel(const QString &questionText, const QString &
     if (questionType == "free response") {
         QLineEdit *freeResponseInput = new QLineEdit();
         freeResponseInput->setProperty("questionId", questionId);
-        scrollAreaLayout->addWidget(freeResponseInput);
+        contentLayout->addWidget(freeResponseInput);
     } else if (questionType == "radio buttons") {
         QWidget *radioGroupWidget = new QWidget();
         QVBoxLayout *radioLayout = new QVBoxLayout(radioGroupWidget);
@@ -133,7 +127,7 @@ void MainWindow::addQuestionToPanel(const QString &questionText, const QString &
             radioLayout->addWidget(radioButton);
         }
 
-        scrollAreaLayout->addWidget(radioGroupWidget);
+        contentLayout->addWidget(radioGroupWidget);
     } else if (questionType == "drop down") {
         QComboBox *dropdown = new QComboBox();
 
@@ -143,19 +137,22 @@ void MainWindow::addQuestionToPanel(const QString &questionText, const QString &
         }
 
         dropdown->setProperty("questionId", questionId);
-        scrollAreaLayout->addWidget(dropdown);
+        contentLayout->addWidget(dropdown);
     }
 }
 
-void MainWindow::setupScrollAreaAndSaveButton() {
-    // Create a vertical layout for the scroll area and save button
-    QVBoxLayout *verticalLayout = qobject_cast<QVBoxLayout *>(ui->scrollAreaContainer->layout());
+QVBoxLayout* MainWindow::setupScrollAreaAndSaveButton() {
+    QScrollArea* scrollArea = new QScrollArea(this); // 'this' is the parent, MainWindow
+    QWidget* scrollContent = new QWidget();
+    QVBoxLayout* contentLayout = new QVBoxLayout(scrollContent);  // Set a layout for the content
 
-    // Ensure the scrollArea is already created and set up
-    if (!ui->scrollArea) {
-        qDebug() << "scrollArea is null!";
-        return;
-    }
+    scrollArea->setWidget(scrollContent);
+    scrollArea->setWidgetResizable(true);  // Ensure the scroll area resizes properly
+
+    // Create a vertical layout for the scroll area and save button
+    QVBoxLayout *verticalLayout = qobject_cast<QVBoxLayout *>(ui->mainAreaContainer->layout());
+
+    verticalLayout->addWidget(scrollArea);
 
     // Create the Save button
     QPushButton *saveButton = new QPushButton("Save Answers");
@@ -176,6 +173,8 @@ void MainWindow::setupScrollAreaAndSaveButton() {
 
     // Add the horizontal layout (with the spacer and Save button) to the vertical layout
     verticalLayout->addLayout(buttonLayout);
+
+    return contentLayout;  // Return the content layout to be used for adding questions
 }
 
 // Function to handle the Save button action
@@ -184,14 +183,13 @@ void MainWindow::saveData() {
     // Add your save logic here
 }
 
-
-
 void MainWindow::on_AnswerQuestionsBtn_clicked()
 {
-    ui->AnswerQuestionsBtn->setEnabled(false);
-    setupScrollAreaAndSaveButton();
-    if (dbManager->connectToDatabase()) {
-        loadQuestions();
-    }
+    // ui->AnswerQuestionsBtn->setEnabled(false);
+    // QVBoxLayout *contentLayout = setupScrollAreaAndSaveButton();
+    // if (dbManager->connectToDatabase()) {
+    //     loadQuestions(contentLayout);  // Pass the content layout to loadQuestions
+    // }
+    QVBoxLayout *verticalLayout = qobject_cast<QVBoxLayout *>(ui->mainAreaContainer->layout());
+    new AskQuestionsUI(verticalLayout, this, this->dbManager);
 }
-

@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QPushButton>
+#include <QVBoxLayout>
 #include "databasemanager.h"
 
 QT_BEGIN_NAMESPACE
@@ -30,18 +31,17 @@ private:
     // Member for managing the database connection
     DatabaseManager *dbManager;
 
-    // Function to dynamically add question widgets based on the question type
-    void addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId);
 
     // Function to load and display questions from the database
-    void loadQuestions();
-    void setupScrollAreaAndSaveButton();
     void saveData();
     void onSidebarButtonClicked(QPushButton *clickedButton, const QList<QPushButton *> &buttons);
     void cleanUpAnswerQuestionsPage();
     void cleanUpSeeAllQuestionsPage();
     void cleanUpScraperConfigPage();
     void cleanUpJobSearchCriteriaPage();
+    QVBoxLayout *setupScrollAreaAndSaveButton();
+    void loadQuestions(QVBoxLayout *contentLayout);
+    void addQuestionToPanel(QVBoxLayout *contentLayout, const QString &questionText, const QString &questionType, int questionId);
 };
 
 #endif // MAINWINDOW_H
