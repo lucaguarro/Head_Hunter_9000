@@ -1,3 +1,4 @@
+import os
 import datetime
 from enum import Enum
 from typing import List
@@ -10,6 +11,8 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
+
+engine = None
 
 class Base(DeclarativeBase):
     pass
@@ -167,5 +170,19 @@ class Option(Base):
         secondary=optionsetoption_table, back_populates="options"
     )
 
-engine = create_engine('sqlite:///example.db', echo=True)
-Base.metadata.create_all(engine)
+def initialize_engine(db_path):
+    """
+    Initializes the engine with a given database path.
+    
+    Args:
+        db_path (str): The path to the SQLite database file.
+    """
+    global engine  # Ensure the function modifies the module-level 'engine'
+
+    # Ensure the directory exists
+    directory = os.path.dirname(db_path)
+    if not os.path.exists(directory):
+        os.makedirs(directory)  # Create the directory if it doesn't exist
+
+    engine = create_engine(f'sqlite:///{db_path}', echo=True)
+    Base.metadata.create_all(engine)  # Create tables if they don't exist yet

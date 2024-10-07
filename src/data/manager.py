@@ -2,8 +2,12 @@ import data.architecture as da
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
 
-Session = sessionmaker(bind=da.engine)
-session = Session()
+session = None
+
+def initialize_session():
+    global session
+    Session = sessionmaker(bind=da.engine)
+    session = Session()
 
 def create_or_get_job_board(jobboardname):
     jobboard = session.query(da.JobBoard).filter_by(name=jobboardname).first()

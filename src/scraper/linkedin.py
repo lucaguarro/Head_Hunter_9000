@@ -51,7 +51,7 @@ class Head_Hunter_9000:
 
         # Debugger detection
         self.debugger_port = 9222  # Change this if you use a different port
-        chromedriver_path = '/home/luca/Documents/Projects/Head_Hunter_9000/chromedriver-linux64/chromedriver'
+        chromedriver_path = config['SCRAPER']['chromedriver_filepath']
         
         if self.is_debugger_running():
             # Connect to existing Chrome session
@@ -63,6 +63,8 @@ class Head_Hunter_9000:
             print("No debugger detected. Starting a new Chrome session...")
             self.logged_in = False
 
+        da.initialize_engine(config['DATABASE']['db_filepath'])
+        dm.initialize_session()
         self.driver = webdriver.Chrome(executable_path=chromedriver_path, options=opts)
 
     def is_debugger_running(self):
@@ -272,10 +274,29 @@ class Head_Hunter_9000:
             print("Could not find job id.")
             return ''
 
-    def scrape_freeresponse_questions(self, freeresponse_question_containers):
+    def scrape_freeresponse_questions(self, freeresponse_question_containers, freeresponse_question_container_xpaths):
         questions = []
         for fr_q_c in freeresponse_question_containers:
-            question_prompt = fr_q_c.find_element(By.TAG_NAME, "label").get_attribute("innerText")
+            try:
+                # Try to find the label first
+                question_prompt = fr_q_c.find_element(By.TAG_NAME, "label").get_attribute("innerText")
+            except NoSuchElementException:
+                # If no label is found, check for "Screener Question"
+                try:
+                    # Navigate up the DOM and find the spans related to the screener question
+                    # First span (group title)
+                    group_title = fr_q_c.find_element(By.XPATH, freeresponse_question_container_xpaths.screener_question_title.xpath).get_attribute("innerText")
+                    
+                    # Second span (group subtitle)
+                    group_subtitle = fr_q_c.find_element(By.XPATH, freeresponse_question_container_xpaths.screener_question_subtitle.xpath).get_attribute("innerText")
+                    
+                    # Combine the title and subtitle as the question prompt
+                    question_prompt = f"{group_title}: {group_subtitle}"
+                except NoSuchElementException:
+                    # If the spans are not found either, continue with the next element
+                    continue
+            
+            # Append the question prompt (either from label or screener question) to the list
             questions.append(question_prompt)
 
         return questions
@@ -336,6 +357,34 @@ class Head_Hunter_9000:
             questions_with_options.append((question_prompt, option_list))
         
         return questions_with_options
+    
+    def scrape_checkbox_questions(self, checkbox_question_containers):
+        questions_with_options = []
+
+        for cb_q_c in checkbox_question_containers:
+            question_prompt = cb_q_c.find_element(By.XPATH, ".//span[@data-test-form-builder-checkbox-form-component__title]/span[@aria-hidden='true']").text
+            print(question_prompt)
+
+            input_containers = cb_q_c.find_elements(By.TAG_NAME, "div")
+
+            # List to store the dictionaries
+            option_list = []
+
+            for input_container in input_containers:
+                input = input_container.find_element(By.TAG_NAME, "input")
+                value = input.get_attribute('data-test-text-selectable-option__input')
+
+                inner_text = input_container.find_element(By.TAG_NAME, "label").text
+
+                option_dict = {
+                    "text": inner_text,
+                    "value": value
+                }
+                option_list.append(option_dict)
+
+            questions_with_options.append((question_prompt, option_list))
+        
+        return questions_with_options
 
     def fill_out_questions(self, freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers):
         for fr_q in freeresponse_question_containers:
@@ -372,30 +421,42 @@ class Head_Hunter_9000:
                 return nxt_btn[0]
             
             return None
+        
+        def is_there_workexperience_form():
+            we_form = jobapp_popup.find_elements(By.XPATH, jobapp_popup_xpaths.workexperience_form.xpath)
+            if we_form:
+                return True
+            else:
+                return False
 
         fr_prompts = []
         dd_prompts_and_options = []
         rb_prompts_and_options = []
+        cb_prompts_and_options = []
 
         next_btn = True
         while next_btn:
             next_btn = get_next_btn()
-            question_form = jobapp_popup.find_element(By.XPATH, questionform_xpaths.xpath)
 
-            freeresponse_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.freeresponse_question_container.xpath)
-            dropdown_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.dropdown_question_container.xpath)
-            radiobutton_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.radiobutton_question_container.xpath)
+            if not is_there_workexperience_form():
+                question_form = jobapp_popup.find_element(By.XPATH, questionform_xpaths.xpath)
 
-            self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers)
+                freeresponse_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.freeresponse_question_container.xpath)
+                dropdown_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.dropdown_question_container.xpath)
+                radiobutton_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.radiobutton_question_container.xpath)
+                checkbox_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.checkbox_question_container.xpath)
 
-            fr_prompts.extend(self.scrape_freeresponse_questions(freeresponse_question_containers))
-            dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers))
-            rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
+                self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers)
+
+                fr_prompts.extend(self.scrape_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container))
+                dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers))
+                rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
+                cb_prompts_and_options.extend(self.scrape_checkbox_questions(checkbox_question_containers))
 
             if next_btn is not None:
                 next_btn.click()
 
-        all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options}
+        all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options, 'checkbox': cb_prompts_and_options}
 
         close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
         close_button.click()
@@ -419,6 +480,8 @@ class Head_Hunter_9000:
         for rb_q in all_questions['radiobutton']:
             question_sa = dm.create_question_and_options(rb_q, da.QuestionType.RADIOBUTTON)
             questions_sa.append(question_sa)
+
+        # TODO add checkbox questions and add to database
 
         dm.create_job(job_info, jobboard_sa, questions_sa)
         dm.commit()

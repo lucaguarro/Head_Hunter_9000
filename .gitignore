@@ -8,6 +8,8 @@ basics.py
 Database
 *.log
 Logs/
+/debug/notes.txt
+/notes/screenshots
 
 # Python cache and database files
 *.pyc
