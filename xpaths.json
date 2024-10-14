@@ -83,13 +83,16 @@
                                 "xpath": ".//div[@class='ph5']",
                                 "children": {
                                     "freeresponse_question_container": {
-                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component]",
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component or @data-test-single-typeahead-entity-form-component]",
                                         "children": {
                                             "screener_question_title": {
                                                 "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-modal')]//span[contains(@class, 'jobs-easy-apply-form-section__group-title')]"
                                             },
                                             "screener_question_subtitle": {
                                                 "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-modal')]//span[contains(@class, 'jobs-easy-apply-form-section__group-subtitle')]"
+                                            },
+                                            "type_ahead_dropdown_first_option": {
+                                                "xpath": "(.//div[@class='search-typeahead-v2__hit search-typeahead-v2__hit--autocomplete'])[1]"
                                             }
                                         }
                                     },

@@ -100,7 +100,7 @@ class Head_Hunter_9000:
     def scroll_through_sidebar(self, jobapps_sidebar_xpath):
         scroll_cnt = 0
         sidebar = self.driver.find_element(By.XPATH, jobapps_sidebar_xpath.xpath)
-        if self.is_debugger_running() and self.config.getboolean('skip_sidebar_scroll'): # skip this to save time during debugging
+        if self.is_debugger_running() and not self.config.getboolean('DEBUGGER', 'skip_sidebar_scroll'): # skip this to save time during debugging
             while scroll_cnt < 5:
                 self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;', sidebar)
                 scroll_cnt += 1
@@ -385,11 +385,15 @@ class Head_Hunter_9000:
         
         return questions_with_options
 
-    def fill_out_questions(self, freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers):
+    def fill_out_questions(self, freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, freeresponse_question_container_xpaths):
         for fr_q in freeresponse_question_containers:
             input_tag = fr_q.find_element(By.TAG_NAME, "input")
             input_tag.clear()
             input_tag.send_keys("1")
+            typeahead_entity = fr_q.get_attribute("data-test-single-typeahead-entity-form-component")
+            if typeahead_entity is not None:
+                first_option = fr_q.find_element(By.XPATH, freeresponse_question_container_xpaths.type_ahead_dropdown_first_option.xpath)
+                first_option.click()
 
         for dd_q in dropdown_question_containers:
             select_el = dd_q.find_element(By.TAG_NAME, "select")
@@ -445,7 +449,7 @@ class Head_Hunter_9000:
                 radiobutton_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.radiobutton_question_container.xpath)
                 checkbox_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.checkbox_question_container.xpath)
 
-                self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers)
+                self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, questionform_xpaths.freeresponse_question_container)
 
                 fr_prompts.extend(self.scrape_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container))
                 dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers))
