@@ -1,10 +1,12 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver import ChromeOptions
 import html2text
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 import urllib.parse
 import random
 import time
@@ -401,7 +403,12 @@ class Head_Hunter_9000:
             input_or_textarea.send_keys("1")
             typeahead_entity = fr_q.get_attribute("data-test-single-typeahead-entity-form-component")
             if typeahead_entity is not None:
-                first_option = fr_q.find_element(By.XPATH, freeresponse_question_container_xpaths.type_ahead_dropdown_first_option.xpath)
+                try:
+                    first_option = WebDriverWait(fr_q, 10).until(
+                        EC.presence_of_element_located((By.XPATH, freeresponse_question_container_xpaths.type_ahead_dropdown_first_option.xpath))
+                    )
+                except TimeoutException:
+                    print("Element was not found within the timeout period.")
                 first_option.click()
 
         for dd_q in dropdown_question_containers:
