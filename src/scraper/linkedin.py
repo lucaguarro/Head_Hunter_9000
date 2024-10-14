@@ -36,9 +36,7 @@ logger = logging.getLogger(__name__)
 class Head_Hunter_9000:
 
     def __init__(self, config):
-
-        self.username = config['LOGIN']['email']
-        self.password = config['LOGIN']['password']
+        self.config = config
 
         self.redirect_url = utils.make_url(config['SEARCH_FILTERS'])
 
@@ -91,8 +89,8 @@ class Head_Hunter_9000:
         username_input = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_username_input.xpath)
         password_input = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_password_input.xpath)
 
-        utils.simulate_human_typing(username_input, self.username)
-        utils.simulate_human_typing(password_input, self.password)
+        utils.simulate_human_typing(username_input, self.config['LOGIN']['email'])
+        utils.simulate_human_typing(password_input, self.config['LOGIN']['password'])
 
         time.sleep(random.uniform(0.1, 0.5))
         submit_btn = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_submit_button.xpath)
@@ -102,7 +100,7 @@ class Head_Hunter_9000:
     def scroll_through_sidebar(self, jobapps_sidebar_xpath):
         scroll_cnt = 0
         sidebar = self.driver.find_element(By.XPATH, jobapps_sidebar_xpath.xpath)
-        if not self.is_debugger_running(): # skip this to save time during debugging
+        if self.is_debugger_running() and self.config.getboolean('skip_sidebar_scroll'): # skip this to save time during debugging
             while scroll_cnt < 5:
                 self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;', sidebar)
                 scroll_cnt += 1
