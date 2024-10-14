@@ -90,9 +90,9 @@ def does_question_exist(question_text, question_type, optionset):
 
     return existing_question.first()
 
-def create_question_and_options(rb_prompt_and_options, question_type):
-    prompt = rb_prompt_and_options[0]
-    options = rb_prompt_and_options[1]
+def create_question_and_options(prompt_and_options, question_type):
+    prompt = prompt_and_options[0]
+    options = prompt_and_options[1]
 
     options_sa, was_option_created = insert_options(options)
     if was_option_created:
@@ -135,6 +135,11 @@ def create_question(question_text, question_type, optionset = None, ismultiline 
         )
     elif question_type == da.QuestionType.DROPDOWN:
         new_question = da.DropDownQuestion(
+            question = question_text,
+            optionset = optionset
+        )
+    elif question_type == da.QuestionType.CHECKBOX:
+        new_question = da.CheckBoxQuestion(
             question = question_text,
             optionset = optionset
         )

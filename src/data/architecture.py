@@ -109,7 +109,7 @@ class Job(Base):
     def __repr__(self):
         return f"<Job(title='{self.title}', company_name='{self.company_name}')>"
 
-QuestionType = Enum('QuestionType', ['FREERESPONSE', 'RADIOBUTTON', 'DROPDOWN'])
+QuestionType = Enum('QuestionType', ['FREERESPONSE', 'RADIOBUTTON', 'DROPDOWN', 'CHECKBOX'])
 
 class Question(Base):
     __tablename__ = "question"

@@ -371,16 +371,16 @@ class Head_Hunter_9000:
         questions_with_options = []
 
         for cb_q_c in checkbox_question_containers:
-            question_prompt = cb_q_c.find_element(By.XPATH, ".//span[@data-test-form-builder-checkbox-form-component__title]/span[@aria-hidden='true']").text
+            question_prompt = cb_q_c.find_element(By.XPATH, ".//span[@aria-hidden='true']").text
             print(question_prompt)
 
-            input_containers = cb_q_c.find_elements(By.TAG_NAME, "div")
+            input_containers = cb_q_c.find_elements(By.XPATH, "./div")
 
             # List to store the dictionaries
             option_list = []
 
             for input_container in input_containers:
-                input = input_container.find_element(By.TAG_NAME, "input")
+                input = input_container.find_element(By.XPATH, "./input")
                 value = input.get_attribute('data-test-text-selectable-option__input')
 
                 inner_text = input_container.find_element(By.TAG_NAME, "label").text
@@ -395,7 +395,7 @@ class Head_Hunter_9000:
         
         return questions_with_options
 
-    def fill_out_questions(self, freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, freeresponse_question_container_xpaths):
+    def fill_out_questions(self, freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, checkbox_question_containers, freeresponse_question_container_xpaths):
         for fr_q in freeresponse_question_containers:
             input_or_textarea = fr_q.find_element(By.XPATH, ".//input | .//textarea")
             # input_tag = fr_q.find_element(By.TAG_NAME, "input")
@@ -420,6 +420,11 @@ class Head_Hunter_9000:
             radio_buttons = rb_q.find_elements(By.XPATH, ".//label")
             if radio_buttons:
                 radio_buttons[0].click()
+
+        for cb_q in checkbox_question_containers:
+            checkboxes = cb_q.find_elements(By.XPATH, ".//label")
+            if checkboxes:
+                checkboxes[0].click()
 
     def scrape_questions(self, job_info_container):
         # def get_rvw_btn():
@@ -465,7 +470,7 @@ class Head_Hunter_9000:
                 radiobutton_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.radiobutton_question_container.xpath)
                 checkbox_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.checkbox_question_container.xpath)
 
-                self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, questionform_xpaths.freeresponse_question_container)
+                self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, checkbox_question_containers, questionform_xpaths.freeresponse_question_container)
 
                 fr_prompts.extend(self.scrape_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container))
                 dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container))
@@ -501,6 +506,9 @@ class Head_Hunter_9000:
             questions_sa.append(question_sa)
 
         # TODO add checkbox questions and add to database
+        for cb_q in all_questions['checkbox']:
+            question_sa = dm.create_question_and_options(cb_q, da.QuestionType.CHECKBOX)
+            questions_sa.append(question_sa)
 
         dm.create_job(job_info, jobboard_sa, questions_sa)
         dm.commit()
