@@ -6,7 +6,6 @@ from selenium.webdriver import ChromeOptions
 import html2text
 from selenium.common.exceptions import NoSuchElementException
 import urllib.parse
-import configparser
 import random
 import time
 import logging.config
@@ -36,9 +35,7 @@ logger = logging.getLogger(__name__)
 
 class Head_Hunter_9000:
 
-    def __init__(self, config_file_path):
-        config = configparser.ConfigParser()
-        config.read(config_file_path)
+    def __init__(self, config):
 
         self.username = config['LOGIN']['email']
         self.password = config['LOGIN']['password']
@@ -53,15 +50,14 @@ class Head_Hunter_9000:
         self.debugger_port = 9222  # Change this if you use a different port
         chromedriver_path = config['SCRAPER']['chromedriver_filepath']
         
+        self.debugger_running = None
         if self.is_debugger_running():
             # Connect to existing Chrome session
             print("Debugger detected. Connecting to existing Chrome session...")
             opts.add_experimental_option("debuggerAddress", f"localhost:{self.debugger_port}")
-            self.logged_in = True  # Assume already logged in and on jobs page
         else:
             # Start a new Chrome instance
             print("No debugger detected. Starting a new Chrome session...")
-            self.logged_in = False
 
         da.initialize_engine(config['DATABASE']['db_filepath'])
         dm.initialize_session()
@@ -71,11 +67,16 @@ class Head_Hunter_9000:
         """
         Check if Chrome debugger is running by trying to connect to the debugging port.
         """
-        try:
-            response = requests.get(f"http://localhost:{self.debugger_port}/json")
-            return response.status_code == 200
-        except requests.ConnectionError:
-            return False
+        if not self.debugger_running:
+            try:
+                response = requests.get(f"http://localhost:{self.debugger_port}/json")
+                self.debugger_running = True
+                return response.status_code == 200
+            except requests.ConnectionError:
+                self.debugger_running = False
+                return False
+        else:
+            return self.debugger_running
 
     def __del__(self):
         self.driver.close()
@@ -492,6 +493,17 @@ class Head_Hunter_9000:
             return jobs_sidebar.find_element(By.XPATH, next_page_button_xpath)
         except NoSuchElementException:
             return None
+        
+    def process_job(self):
+        try:
+            ext_job_id = self.get_job_id(self.driver.current_url)
+            job_info_container = self.driver.find_element(By.XPATH, xpaths.root_node.jobapps_main.jobinfo_container.xpath)
+            job_info = self.build_job_info(job_info_container, ext_job_id)
+            if not job_info['appsubmitted']: # can also do a check here to see if job already exists in local db TODO
+                all_questions = self.scrape_questions(job_info_container)
+                self.store_to_database(job_info, all_questions)
+        except RegexParseError as e:
+            logger.error(e)
 
     def scan_job_apps(self, apply_mode_on=False):
         time.sleep(random.uniform(1, 2))
@@ -511,16 +523,7 @@ class Head_Hunter_9000:
                 link.click()
                 time.sleep(random.uniform(1, 2))
 
-                try:
-                    ext_job_id = self.get_job_id(self.driver.current_url)
-                    job_info_container = self.driver.find_element(By.XPATH, xpaths.root_node.jobapps_main.jobinfo_container.xpath)
-                    job_info = self.build_job_info(job_info_container, ext_job_id)
-                    if not job_info['appsubmitted']: # can also do a check here to see if job already exists in local db TODO
-                        all_questions = self.scrape_questions(job_info_container)
-                        self.store_to_database(job_info, all_questions)
-                except RegexParseError as e:
-                    logger.error(e)
-
+                self.process_job()
 
             curr_page_number += 1
             next_page_button = self.find_next_page_button(jobs_sidebar, curr_page_number, jobapps_sidebar_xpaths)

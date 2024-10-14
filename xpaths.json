@@ -80,10 +80,10 @@
                                 "xpath": ".//div[contains(@class, 'jobs-easy-apply-repeatable-groupings__groupings')]"
                             },
                             "question_form": {
-                                "xpath": ".//div[@class='pb4']",
+                                "xpath": ".//div[@class='ph5']",
                                 "children": {
                                     "freeresponse_question_container": {
-                                        "xpath": "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component]",
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component]",
                                         "children": {
                                             "screener_question_title": {
                                                 "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-modal')]//span[contains(@class, 'jobs-easy-apply-form-section__group-title')]"
@@ -94,13 +94,13 @@
                                         }
                                     },
                                     "dropdown_question_container": {
-                                        "xpath": "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-text-entity-list-form-component]"
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-text-entity-list-form-component]"
                                     },
                                     "radiobutton_question_container": {
-                                        "xpath": "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]"
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]"
                                     },
                                     "checkbox_question_container": {
-                                        "xpath": "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-checkbox-form-component]"
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-checkbox-form-component]"
                                     }
                                 }
                             },
