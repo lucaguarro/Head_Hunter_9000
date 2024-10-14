@@ -22,6 +22,9 @@
                     "jobapps_sidebar": {
                         "xpath": "//div[@class='scaffold-layout__list ']/div[contains(@class, 'jobs-search-results-list')]",
                         "children": {
+                            "next_page_button": {
+                                "xpath": "//ul[contains(@class, 'artdeco-pagination__pages')]/li/button[@aria-label='Page {pagenumber}']"
+                            },
                             "sidebar_listings": {
                                 "xpath": "//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]",
                                 "children": {

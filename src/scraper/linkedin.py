@@ -486,28 +486,42 @@ class Head_Hunter_9000:
         dm.create_job(job_info, jobboard_sa, questions_sa)
         dm.commit()
 
+    def find_next_page_button(self, jobs_sidebar, curr_page_number, jobapps_sidebar_xpaths):
+        next_page_button_xpath = jobapps_sidebar_xpaths.next_page_button.xpath.format(pagenumber=curr_page_number)
+        try:
+            return jobs_sidebar.find_element(By.XPATH, next_page_button_xpath)
+        except NoSuchElementException:
+            return None
+
     def scan_job_apps(self, apply_mode_on=False):
         time.sleep(random.uniform(1, 2))
         jobapps_sidebar_xpaths = xpaths.root_node.jobapps_main.jobapps_sidebar
         jobs_sidebar = self.scroll_through_sidebar(jobapps_sidebar_xpaths)
-        job_listings = jobs_sidebar.find_elements(By.XPATH, jobapps_sidebar_xpaths.sidebar_listings.xpath)
 
-        for i in range(len(job_listings)):
-            just_added = False
-            time.sleep(random.uniform(1, 2))
-            link = job_listings[i].find_element(By.XPATH, jobapps_sidebar_xpaths.sidebar_listings.listing_link.xpath)
-            link.click()
-            time.sleep(random.uniform(1, 2))
+        curr_page_number = 1
+        next_page_button = self.find_next_page_button(jobs_sidebar, curr_page_number, jobapps_sidebar_xpaths)
 
-            try:
-                ext_job_id = self.get_job_id(self.driver.current_url)
-                job_info_container = self.driver.find_element(By.XPATH, xpaths.root_node.jobapps_main.jobinfo_container.xpath)
-                job_info = self.build_job_info(job_info_container, ext_job_id)
-                if not job_info['appsubmitted']: # can also do a check here to see if job already exists in local db TODO
-                    all_questions = self.scrape_questions(job_info_container)
-                    self.store_to_database(job_info, all_questions)
-            except RegexParseError as e:
-                logger.error(e)
+        while(next_page_button):
+            next_page_button.click()
+            job_listings = jobs_sidebar.find_elements(By.XPATH, jobapps_sidebar_xpaths.sidebar_listings.xpath)
 
-            # close job pop-up window
+            for i in range(len(job_listings)):
+                time.sleep(random.uniform(1, 2))
+                link = job_listings[i].find_element(By.XPATH, jobapps_sidebar_xpaths.sidebar_listings.listing_link.xpath)
+                link.click()
+                time.sleep(random.uniform(1, 2))
+
+                try:
+                    ext_job_id = self.get_job_id(self.driver.current_url)
+                    job_info_container = self.driver.find_element(By.XPATH, xpaths.root_node.jobapps_main.jobinfo_container.xpath)
+                    job_info = self.build_job_info(job_info_container, ext_job_id)
+                    if not job_info['appsubmitted']: # can also do a check here to see if job already exists in local db TODO
+                        all_questions = self.scrape_questions(job_info_container)
+                        self.store_to_database(job_info, all_questions)
+                except RegexParseError as e:
+                    logger.error(e)
+
+
+            curr_page_number += 1
+            next_page_button = self.find_next_page_button(jobs_sidebar, curr_page_number, jobapps_sidebar_xpaths)
                 

@@ -43,6 +43,13 @@ optionsetoption_table = Table(
     Column("optionsetid", ForeignKey("optionset.id"), primary_key=True)
 )
 
+checkboxanswers_table = Table(
+    "checkboxanswers",
+    Base.metadata,
+    Column("checkboxquestionid", ForeignKey("checkboxquestion.id"), primary_key=True),
+    Column("answerasoptionid", ForeignKey("option.id"), primary_key=True)
+)
+
 class OptionSet(Base):
     __tablename__ = "optionset"
 
@@ -51,6 +58,7 @@ class OptionSet(Base):
 
     radiobuttonquestions: Mapped[List["RadioButtonQuestion"]] = relationship(back_populates="optionset")
     dropdownquestions: Mapped[List["DropDownQuestion"]] = relationship(back_populates="optionset")
+    checkboxquestions: Mapped[List["CheckBoxQuestion"]] = relationship(back_populates="optionset")
 
     options: Mapped[List["Option"]] = relationship(
         secondary=optionsetoption_table, back_populates="optionsets"
@@ -159,6 +167,24 @@ class DropDownQuestion(Question):
 
     optionset: Mapped["OptionSet"] = relationship(back_populates="dropdownquestions")
 
+
+class CheckBoxQuestion(Question):
+    __tablename__ = 'checkboxquestion'
+
+    id: Mapped[int] = mapped_column(ForeignKey("question.id"), primary_key=True)
+    optionsetid: Mapped[int] = Column(Integer, ForeignKey("optionset.id"))
+
+    __mapper_args__ = {
+        "polymorphic_identity": "checkbox",
+    }
+
+    optionset: Mapped["OptionSet"] = relationship(back_populates="checkboxquestions")
+
+    checkboxanswers: Mapped[List["Option"]] = relationship(
+        secondary=checkboxanswers_table, back_populates="checkboxquestions"
+    )
+
+
 class Option(Base):
     __tablename__ = 'option'
 
@@ -168,6 +194,10 @@ class Option(Base):
 
     optionsets: Mapped[List[OptionSet]] = relationship(
         secondary=optionsetoption_table, back_populates="options"
+    )
+
+    checkboxquestions: Mapped[List["CheckBoxQuestion"]] = relationship(
+        secondary=checkboxanswers_table, back_populates="checkboxanswers"
     )
 
 def initialize_engine(db_path):
