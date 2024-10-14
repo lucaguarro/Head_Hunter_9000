@@ -294,17 +294,25 @@ class Head_Hunter_9000:
                 except NoSuchElementException:
                     # If the spans are not found either, continue with the next element
                     continue
+
+            is_multiline = False
+            multiline_entity = fr_q_c.get_attribute("data-test-multiline-text-form-component")
+            if multiline_entity is not None:
+                is_multiline = True
             
             # Append the question prompt (either from label or screener question) to the list
-            questions.append(question_prompt)
+            questions.append((question_prompt, is_multiline))
 
         return questions
 
-    def scrape_dropdown_questions(self, dropdown_question_containers):
+    def scrape_dropdown_questions(self, dropdown_question_containers, dropdown_question_container_xpaths):
         questions_with_options = []
 
         for dd_q_c in dropdown_question_containers:
-            question_prompt = dd_q_c.find_element(By.XPATH, "./label/span[@aria-hidden='true']").text
+            try:
+                question_prompt = dd_q_c.find_element(By.XPATH, "./label/span[@aria-hidden='true']").text
+            except NoSuchElementException:
+                question_prompt = dd_q_c.find_element(By.XPATH, dropdown_question_container_xpaths.app_aware_question_title.xpath).get_attribute("innerText")
 
             select = dd_q_c.find_element(By.TAG_NAME, "select")
             options = select.find_elements(By.TAG_NAME, "option")
@@ -387,9 +395,10 @@ class Head_Hunter_9000:
 
     def fill_out_questions(self, freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, freeresponse_question_container_xpaths):
         for fr_q in freeresponse_question_containers:
-            input_tag = fr_q.find_element(By.TAG_NAME, "input")
-            input_tag.clear()
-            input_tag.send_keys("1")
+            input_or_textarea = fr_q.find_element(By.XPATH, ".//input | .//textarea")
+            # input_tag = fr_q.find_element(By.TAG_NAME, "input")
+            input_or_textarea.clear()
+            input_or_textarea.send_keys("1")
             typeahead_entity = fr_q.get_attribute("data-test-single-typeahead-entity-form-component")
             if typeahead_entity is not None:
                 first_option = fr_q.find_element(By.XPATH, freeresponse_question_container_xpaths.type_ahead_dropdown_first_option.xpath)
@@ -452,7 +461,7 @@ class Head_Hunter_9000:
                 self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, questionform_xpaths.freeresponse_question_container)
 
                 fr_prompts.extend(self.scrape_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container))
-                dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers))
+                dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container))
                 rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
                 cb_prompts_and_options.extend(self.scrape_checkbox_questions(checkbox_question_containers))
 
@@ -473,7 +482,7 @@ class Head_Hunter_9000:
 
         questions_sa = []
         for fr_q in all_questions['freeresponse']:
-            question_sa = dm.create_question(fr_q, da.QuestionType.FREERESPONSE, None)
+            question_sa = dm.create_question(fr_q[0], da.QuestionType.FREERESPONSE, None, fr_q[1])
             questions_sa.append(question_sa)
 
         for dd_q in all_questions['dropdown']:

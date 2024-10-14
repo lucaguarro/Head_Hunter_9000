@@ -134,6 +134,7 @@ class FreeResponseQuestion(Question):
     __tablename__ = 'freeresponsequestion'
 
     id: Mapped[int] = mapped_column(ForeignKey("question.id"), primary_key=True)
+    ismultiline: Mapped[bool] = mapped_column(Boolean)
     answer: Mapped[str] = mapped_column(String, nullable=True)
 
     __mapper_args__ = {

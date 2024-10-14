@@ -83,7 +83,7 @@
                                 "xpath": ".//div[@class='ph5']",
                                 "children": {
                                     "freeresponse_question_container": {
-                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component or @data-test-single-typeahead-entity-form-component]",
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component or @data-test-single-typeahead-entity-form-component or @data-test-multiline-text-form-component]",
                                         "children": {
                                             "screener_question_title": {
                                                 "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-modal')]//span[contains(@class, 'jobs-easy-apply-form-section__group-title')]"
@@ -97,7 +97,12 @@
                                         }
                                     },
                                     "dropdown_question_container": {
-                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-text-entity-list-form-component]"
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-text-entity-list-form-component]",
+                                        "children": {
+                                            "app_aware_question_title": {
+                                                "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-modal')]//span[contains(@class, 'jobs-easy-apply-form-section__group-title')]"
+                                            }
+                                        }
                                     },
                                     "radiobutton_question_container": {
                                         "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]"

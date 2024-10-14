@@ -122,10 +122,11 @@ def create_question_and_options(rb_prompt_and_options, question_type):
     return question_sa
 
 
-def create_question(question_text, question_type, optionset = None):
+def create_question(question_text, question_type, optionset = None, ismultiline = None):
     if question_type == da.QuestionType.FREERESPONSE:
         new_question = da.FreeResponseQuestion(
-            question = question_text
+            question = question_text,
+            ismultiline = ismultiline
         )
     elif question_type == da.QuestionType.RADIOBUTTON:
         new_question = da.RadioButtonQuestion(
