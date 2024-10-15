@@ -71,11 +71,12 @@ def make_optionset(options_sa, options_hash):
 
     return new_optionset
 
-def does_question_exist(question_text, question_type, optionset):
+def does_question_exist(question_text, question_type, optionset = None, ismultiline = None):
 
     if question_type == da.QuestionType.FREERESPONSE:
         existing_question = session.query(da.FreeResponseQuestion).filter(
             da.FreeResponseQuestion.question == question_text,
+            da.FreeResponseQuestion.ismultiline == ismultiline
         )
     elif question_type == da.QuestionType.RADIOBUTTON:
         existing_question = session.query(da.RadioButtonQuestion).filter(

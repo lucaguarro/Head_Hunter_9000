@@ -99,15 +99,16 @@ class Head_Hunter_9000:
         submit_btn.click()
         logger.debug("Logged into linkedin.")
 
-    def scroll_through_sidebar(self, jobapps_sidebar_xpath):
+
+    def scroll_through_sidebar(self, sidebar):
+        if self.is_debugger_running() and self.config.getboolean('DEBUGGER', 'skip_sidebar_scroll'): # skip this to save time during debugging
+            return
+        
         scroll_cnt = 0
-        sidebar = self.driver.find_element(By.XPATH, jobapps_sidebar_xpath.xpath)
-        if self.is_debugger_running() and not self.config.getboolean('DEBUGGER', 'skip_sidebar_scroll'): # skip this to save time during debugging
-            while scroll_cnt < 5:
-                self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;', sidebar)
-                scroll_cnt += 1
-                time.sleep(random.uniform(1, 3))
-        return sidebar
+        while scroll_cnt < 5:
+            self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;', sidebar)
+            scroll_cnt += 1
+            time.sleep(random.uniform(1, 3))
 
     def add_info_if_exists(self, job_dict, key, element, xpath_from_element):
         try:
@@ -494,7 +495,9 @@ class Head_Hunter_9000:
 
         questions_sa = []
         for fr_q in all_questions['freeresponse']:
-            question_sa = dm.create_question(fr_q[0], da.QuestionType.FREERESPONSE, None, fr_q[1])
+            question_sa = dm.does_question_exist(fr_q[0], da.QuestionType.FREERESPONSE, None, fr_q[1])
+            if not question_sa:
+                question_sa = dm.create_question(fr_q[0], da.QuestionType.FREERESPONSE, None, fr_q[1])
             questions_sa.append(question_sa)
 
         for dd_q in all_questions['dropdown']:
@@ -505,7 +508,6 @@ class Head_Hunter_9000:
             question_sa = dm.create_question_and_options(rb_q, da.QuestionType.RADIOBUTTON)
             questions_sa.append(question_sa)
 
-        # TODO add checkbox questions and add to database
         for cb_q in all_questions['checkbox']:
             question_sa = dm.create_question_and_options(cb_q, da.QuestionType.CHECKBOX)
             questions_sa.append(question_sa)
@@ -521,6 +523,9 @@ class Head_Hunter_9000:
             return None
         
     def process_job(self):
+        if self.is_debugger_running() and self.config.getboolean('DEBUGGER', 'skip_question_scraping'): # skip this to save time during debugging
+            return
+        
         try:
             ext_job_id = self.get_job_id(self.driver.current_url)
             job_info_container = self.driver.find_element(By.XPATH, xpaths.root_node.jobapps_main.jobinfo_container.xpath)
@@ -534,13 +539,15 @@ class Head_Hunter_9000:
     def scan_job_apps(self, apply_mode_on=False):
         time.sleep(random.uniform(1, 2))
         jobapps_sidebar_xpaths = xpaths.root_node.jobapps_main.jobapps_sidebar
-        jobs_sidebar = self.scroll_through_sidebar(jobapps_sidebar_xpaths)
+        jobs_sidebar = self.driver.find_element(By.XPATH, jobapps_sidebar_xpaths.xpath)
 
         curr_page_number = 1
         next_page_button = self.find_next_page_button(jobs_sidebar, curr_page_number, jobapps_sidebar_xpaths)
 
         while(next_page_button):
             next_page_button.click()
+            time.sleep(random.uniform(1, 2))
+            self.scroll_through_sidebar(jobs_sidebar)
             job_listings = jobs_sidebar.find_elements(By.XPATH, jobapps_sidebar_xpaths.sidebar_listings.xpath)
 
             for i in range(len(job_listings)):
@@ -553,4 +560,5 @@ class Head_Hunter_9000:
 
             curr_page_number += 1
             next_page_button = self.find_next_page_button(jobs_sidebar, curr_page_number, jobapps_sidebar_xpaths)
+
                 
