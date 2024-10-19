@@ -427,7 +427,74 @@ class Head_Hunter_9000:
             if checkboxes:
                 checkboxes[0].click()
 
-    def scrape_questions(self, job_info_container):
+    def select_documents(self, document_upload_containers, document_upload_container_xpaths, job_info):
+        # Initialize flags to track if we've handled the documents correctly
+        resume_handled = False
+        cover_letter_handled = False
+
+        for container in document_upload_containers:
+            # Check if the container pertains to a cover letter or resume
+            required_span = container.find_element(By.XPATH, document_upload_container_xpaths.document_upload_required_span.xpath)
+            required_text = required_span.text.lower()
+
+            is_cover_letter = 'cover letter' in required_text
+            is_resume = 'resume' in required_text
+
+            # Log an error if the document type isn't recognized and continue
+            if not (is_cover_letter or is_resume):
+                logging.error("Document upload container is neither for a cover letter nor a resume.")
+                return False
+
+            # Update job_info only if it's relevant
+            if is_cover_letter:
+                job_info['cover_letter_required'] = True
+            if is_resume:
+                job_info['resume_required'] = True
+
+            # Try to find document options if the document is required
+            if is_cover_letter or is_resume:
+                try:
+                    # Find document options within the container
+                    document_options = container.find_elements(By.XPATH, document_upload_container_xpaths.document_option.xpath)
+                    
+                    # If no document options are available and a document is required, return False
+                    if not document_options:
+                        logging.error(f"No document options found, but a {'cover letter' if is_cover_letter else 'resume'} is required.")
+                        return False
+                    
+                    # Check if the first document option is already selected
+                    first_document_option = document_options[0]
+                    selected_class = "jobs-document-upload-redesign-card__container--selected"
+                    
+                    if selected_class in first_document_option.get_attribute("class"):
+                        logging.info(f"Document already selected for {'cover letter' if is_cover_letter else 'resume'}.")
+                    else:
+                        # If the document option is not selected, click to select it
+                        first_document_option.click()
+                        logging.info(f"Selected document for {'cover letter' if is_cover_letter else 'resume'}.")
+
+                    # Mark the document as handled
+                    if is_cover_letter:
+                        cover_letter_handled = True
+                    if is_resume:
+                        resume_handled = True
+
+                except Exception as e:
+                    logging.error(f"Error occurred while selecting a document: {e}")
+                    return False
+
+        # If a document was required but not handled, log an error and return False
+        if job_info.get('cover_letter_required', False) and not cover_letter_handled:
+            logging.error("A cover letter was required, but no option was selected.")
+            return False
+        if job_info.get('resume_required', False) and not resume_handled:
+            logging.error("A resume was required, but no option was selected.")
+            return False
+
+        # Return True if all required documents had an option and were selected successfully
+        return True
+
+    def scrape_questions(self, job_info_container, job_info):
         # def get_rvw_btn():
         #     rvw_btn = hh_9000.driver.find_elements(By.XPATH, "//span[text()='Review']/ancestor::button")
         #     if rvw_btn:
@@ -477,6 +544,12 @@ class Head_Hunter_9000:
                 dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container))
                 rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
                 cb_prompts_and_options.extend(self.scrape_checkbox_questions(checkbox_question_containers))
+
+                document_upload_containers = question_form.find_elements(By.XPATH, questionform_xpaths.document_upload_container.xpath)
+                made_it_past_document_selection = self.select_documents(document_upload_containers, questionform_xpaths.document_upload_container, job_info)
+
+                if not made_it_past_document_selection:
+                    break
 
             if next_btn is not None:
                 next_btn.click()
@@ -531,7 +604,7 @@ class Head_Hunter_9000:
             job_info_container = self.driver.find_element(By.XPATH, xpaths.root_node.jobapps_main.jobinfo_container.xpath)
             job_info = self.build_job_info(job_info_container, ext_job_id)
             if not job_info['appsubmitted']: # can also do a check here to see if job already exists in local db TODO
-                all_questions = self.scrape_questions(job_info_container)
+                all_questions = self.scrape_questions(job_info_container, job_info)
                 self.store_to_database(job_info, all_questions)
         except RegexParseError as e:
             logger.error(e)

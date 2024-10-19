@@ -93,6 +93,9 @@ class Job(Base):
     appsubmitted: Mapped[bool] = mapped_column(Boolean)
     extjobid: Mapped[int] = mapped_column(Integer)
 
+    isresumerequired: Mapped[bool] = mapped_column(Boolean)
+    iscoverletterrequired: Mapped[bool] = mapped_column(Boolean)
+
     jobboardid = Column(Integer, ForeignKey('jobboard.id'))
 
     createdat: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
