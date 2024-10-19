@@ -447,9 +447,9 @@ class Head_Hunter_9000:
 
             # Update job_info only if it's relevant
             if is_cover_letter:
-                job_info['cover_letter_required'] = True
+                job_info['iscoverletterrequired'] = True
             if is_resume:
-                job_info['resume_required'] = True
+                job_info['isresumerequired'] = True
 
             # Try to find document options if the document is required
             if is_cover_letter or is_resume:
