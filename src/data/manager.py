@@ -147,6 +147,13 @@ def create_question(question_text, question_type, optionset = None, ismultiline 
 
     return new_question
 
+def get_document_requirement_status_id(status_name):
+    """
+    Retrieve the id of the document requirement status given the status name.
+    """
+    status = session.query(da.DocumentRequirementStatus).filter_by(status=status_name).first()
+    return status.id if status else None
+    
 def flush():
     session.flush()
 

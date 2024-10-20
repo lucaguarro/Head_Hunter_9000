@@ -263,6 +263,12 @@ class Head_Hunter_9000:
         job_info['extjobid'] = ext_job_id
 
         job_info['jobboardid'] = job_board
+
+        # default value which can be overwritten during question scraping process
+        not_requested_status = dm.get_document_requirement_status_id("Not requested nor required")
+        job_info['resumerequirementstatusid'] = not_requested_status
+        job_info['coverletterrequirementstatusid'] = not_requested_status
+
         return job_info
 
     def get_job_id(self, url):
@@ -428,37 +434,43 @@ class Head_Hunter_9000:
                 checkboxes[0].click()
 
     def select_documents(self, document_upload_containers, document_upload_container_xpaths, job_info):
-        # Initialize flags to track if we've handled the documents correctly
-        resume_handled = False
-        cover_letter_handled = False
 
         for container in document_upload_containers:
             # Check if the container pertains to a cover letter or resume
-            required_span = container.find_element(By.XPATH, document_upload_container_xpaths.document_upload_required_span.xpath)
-            required_text = required_span.text.lower()
+            label_el = container.find_element(By.XPATH, document_upload_container_xpaths.document_upload_label.xpath)
+            label_text = label_el.text.lower()
 
-            is_cover_letter = 'cover letter' in required_text
-            is_resume = 'resume' in required_text
+            is_cover_letter = 'cover letter' in label_text
+            is_resume = 'resume' in label_text
+
+            required_class = "jobs-document-upload__title--is-required"
+            required = required_class in label_el.get_attribute("class")
 
             # Log an error if the document type isn't recognized and continue
             if not (is_cover_letter or is_resume):
                 logging.error("Document upload container is neither for a cover letter nor a resume.")
                 return False
 
-            # Update job_info only if it's relevant
-            if is_cover_letter:
-                job_info['iscoverletterrequired'] = True
-            if is_resume:
-                job_info['isresumerequired'] = True
-
-            # Try to find document options if the document is required
+            # Try to find document options if the document is required or requested
             if is_cover_letter or is_resume:
                 try:
                     # Find document options within the container
                     document_options = container.find_elements(By.XPATH, document_upload_container_xpaths.document_option.xpath)
                     
+                    # Update job_info status based on requirement and availability
+                    if is_cover_letter:
+                        if required:
+                            job_info['coverletterrequirementstatusid'] = dm.get_document_requirement_status_id("Required")
+                        else:
+                            job_info['coverletterrequirementstatusid'] = dm.get_document_requirement_status_id("Requested but not required")
+                    elif is_resume:
+                        if required:
+                            job_info['resumerequirementstatusid'] = dm.get_document_requirement_status_id("Required")
+                        else:
+                            job_info['resumerequirementstatusid'] = dm.get_document_requirement_status_id("Requested but not required")
+
                     # If no document options are available and a document is required, return False
-                    if not document_options:
+                    if not document_options and required:
                         logging.error(f"No document options found, but a {'cover letter' if is_cover_letter else 'resume'} is required.")
                         return False
                     
@@ -473,25 +485,11 @@ class Head_Hunter_9000:
                         first_document_option.click()
                         logging.info(f"Selected document for {'cover letter' if is_cover_letter else 'resume'}.")
 
-                    # Mark the document as handled
-                    if is_cover_letter:
-                        cover_letter_handled = True
-                    if is_resume:
-                        resume_handled = True
-
                 except Exception as e:
                     logging.error(f"Error occurred while selecting a document: {e}")
                     return False
 
-        # If a document was required but not handled, log an error and return False
-        if job_info.get('cover_letter_required', False) and not cover_letter_handled:
-            logging.error("A cover letter was required, but no option was selected.")
-            return False
-        if job_info.get('resume_required', False) and not resume_handled:
-            logging.error("A resume was required, but no option was selected.")
-            return False
-
-        # Return True if all required documents had an option and were selected successfully
+        # Return True if any and all required documents had an option and were selected successfully
         return True
 
     def scrape_questions(self, job_info_container, job_info):

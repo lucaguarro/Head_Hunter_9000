@@ -113,8 +113,8 @@
                                     "document_upload_container": {
                                         "xpath": ".//div[contains(@class, 'js-jobs-document-upload__container')]/ancestor::div[contains(@class, 'pb4')]",
                                         "children": {
-                                            "document_upload_required_span": {
-                                                "xpath": ".//span[contains(@class, 'jobs-document-upload__title--is-required')]"
+                                            "document_upload_label": {
+                                                "xpath": ".//span[contains(@class, 't-14')]"
                                             },
                                             "document_upload_button_span": {
                                                 "xpath": ".//label[contains(@class, 'jobs-document-upload__upload-button')]//span[@role='button']"

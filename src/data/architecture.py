@@ -64,6 +64,20 @@ class OptionSet(Base):
         secondary=optionsetoption_table, back_populates="optionsets"
     )
 
+class DocumentRequirementStatus(Base):
+    __tablename__ = "documentrequirementstatus"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    status: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+
+    def __repr__(self):
+        return f"<DocumentRequirementStatus(status='{self.status}')>"
+
+DOCUMENT_STATUS_VALUES = [
+    "Not requested nor required",
+    "Requested but not required",
+    "Required"
+]
 
 class Job(Base):
     __tablename__ = "job"
@@ -93,8 +107,12 @@ class Job(Base):
     appsubmitted: Mapped[bool] = mapped_column(Boolean)
     extjobid: Mapped[int] = mapped_column(Integer)
 
-    isresumerequired: Mapped[bool] = mapped_column(Boolean)
-    iscoverletterrequired: Mapped[bool] = mapped_column(Boolean)
+    resumerequirementstatusid: Mapped[int] = mapped_column(
+        Integer, ForeignKey('documentrequirementstatus.id'), nullable=False
+    )
+    coverletterrequirementstatusid: Mapped[int] = mapped_column(
+        Integer, ForeignKey('documentrequirementstatus.id'), nullable=False
+    )
 
     jobboardid = Column(Integer, ForeignKey('jobboard.id'))
 
@@ -106,6 +124,9 @@ class Job(Base):
     questions: Mapped[List["Question"]] = relationship(
         secondary=jobquestion_table, back_populates="jobs"
     )
+
+    resume_status: Mapped["DocumentRequirementStatus"] = relationship(foreign_keys=[resumerequirementstatusid])
+    cover_letter_status: Mapped["DocumentRequirementStatus"] = relationship(foreign_keys=[coverletterrequirementstatusid])
 
     UniqueConstraint("jobboardid", "extjobid")
 
@@ -204,6 +225,15 @@ class Option(Base):
         secondary=checkboxanswers_table, back_populates="checkboxanswers"
     )
 
+def populate_document_statuses():
+    from sqlalchemy.orm import Session
+    with Session(engine) as session:
+        for status_value in DOCUMENT_STATUS_VALUES:
+            if not session.query(DocumentRequirementStatus).filter_by(status=status_value).first():
+                session.add(DocumentRequirementStatus(status=status_value))
+        session.commit()
+
+
 def initialize_engine(db_path):
     """
     Initializes the engine with a given database path.
@@ -220,3 +250,5 @@ def initialize_engine(db_path):
 
     engine = create_engine(f'sqlite:///{db_path}', echo=True)
     Base.metadata.create_all(engine)  # Create tables if they don't exist yet
+
+    populate_document_statuses()
