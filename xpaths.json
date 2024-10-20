@@ -111,7 +111,12 @@
                                         "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]"
                                     },
                                     "checkbox_question_container": {
-                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-checkbox-form-component]"
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-checkbox-form-component]",
+                                        "children": {
+                                            "app_aware_question_title": {
+                                                "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-modal')]//span[contains(@class, 'jobs-easy-apply-form-section__group-title')]"
+                                            }
+                                        }
                                     },
                                     "document_upload_container": {
                                         "xpath": ".//div[contains(@class, 'js-jobs-document-upload__container')]/ancestor::div[contains(@class, 'pb4')]",

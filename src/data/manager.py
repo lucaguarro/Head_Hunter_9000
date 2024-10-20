@@ -88,6 +88,11 @@ def does_question_exist(question_text, question_type, optionset = None, ismultil
             da.DropDownQuestion.question == question_text,
             da.DropDownQuestion.optionset == optionset
         )
+    elif question_type == da.QuestionType.CHECKBOX:
+        existing_question = session.query(da.CheckBoxQuestion).filter(
+            da.DropDownQuestion.question == question_text,
+            da.DropDownQuestion.optionset == optionset
+        )
 
     return existing_question.first()
 

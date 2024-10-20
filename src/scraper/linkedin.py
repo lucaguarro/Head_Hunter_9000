@@ -374,12 +374,14 @@ class Head_Hunter_9000:
         
         return questions_with_options
     
-    def scrape_checkbox_questions(self, checkbox_question_containers):
+    def scrape_checkbox_questions(self, checkbox_question_containers, checkbox_question_container_xpaths):
         questions_with_options = []
 
         for cb_q_c in checkbox_question_containers:
-            question_prompt = cb_q_c.find_element(By.XPATH, ".//span[@aria-hidden='true']").text
-            print(question_prompt)
+            try:
+                question_prompt = cb_q_c.find_element(By.XPATH, ".//span[@aria-hidden='true']").text
+            except NoSuchElementException:
+                question_prompt = cb_q_c.find_element(By.XPATH, checkbox_question_container_xpaths.app_aware_question_title.xpath).get_attribute("innerText")
 
             input_containers = cb_q_c.find_elements(By.XPATH, "./div")
 
@@ -551,7 +553,7 @@ class Head_Hunter_9000:
                 fr_prompts.extend(self.scrape_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container))
                 dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container))
                 rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
-                cb_prompts_and_options.extend(self.scrape_checkbox_questions(checkbox_question_containers))
+                cb_prompts_and_options.extend(self.scrape_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container))
 
                 document_upload_containers = question_form.find_elements(By.XPATH, questionform_xpaths.document_upload_container.xpath)
                 made_it_past_document_selection = self.select_documents(document_upload_containers, questionform_xpaths.document_upload_container, job_info)
