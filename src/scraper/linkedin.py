@@ -505,6 +505,16 @@ class Head_Hunter_9000:
         easy_apply_button.click()
 
         jobapp_popup = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.xpath)
+        jobs_easy_apply_modal = 'jobs-easy-apply-modal' in jobapp_popup.get_attribute("class")
+        if not jobs_easy_apply_modal:
+            continue_btn = jobapp_popup.find_elements(By.XPATH, jobapp_popup_xpaths.continueapplying_button.xpath)
+            if continue_btn:
+                continue_btn = continue_btn[0]
+            
+            continue_btn.click()
+            jobapp_popup = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.xpath)
+
+
         def get_next_btn():
             nxt_btn = jobapp_popup.find_elements(By.XPATH, jobapp_popup_xpaths.nextpage_button.xpath)
             if nxt_btn:

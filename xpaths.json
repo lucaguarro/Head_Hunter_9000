@@ -71,8 +71,11 @@
                         }
                     },
                     "jobapp_popup": {
-                        "xpath": "//div[contains(@class, 'artdeco-modal-overlay')]/div[contains(@class, 'artdeco-modal') and contains(@class, 'jobs-easy-apply-modal')]",
+                        "xpath": "//div[contains(@class, 'artdeco-modal-overlay')]/div[contains(@class, 'artdeco-modal')]",
                         "children": {
+                            "continueapplying_button": {
+                                "xpath": ".//span[text()='Continue applying']/ancestor::button"
+                            },
                             "nextpage_button": {
                                 "xpath": ".//span[text()='Next']/ancestor::button"
                             },
