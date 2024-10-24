@@ -80,12 +80,14 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
     if (questionType == "free response") {
         QLineEdit *freeResponseInput = new QLineEdit(this);  // Assign 'this' as the parent
         freeResponseInput->setProperty("questionId", questionId);
+        freeResponseInput->setProperty("questionType", "free response");
         this->contentLayout->addWidget(freeResponseInput);
     } else if (questionType == "radio buttons") {
         QWidget *radioGroupWidget = new QWidget(this);  // Assign 'this' as the parent
         QVBoxLayout *radioLayout = new QVBoxLayout(radioGroupWidget);
 
         radioGroupWidget->setProperty("questionId", questionId);
+        radioGroupWidget->setProperty("questionType", "radio buttons");
 
         // Populate radio buttons with options from the database
         for (const auto &option : options) {
@@ -94,7 +96,6 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
             radioLayout->addWidget(radioButton);
         }
 
-        radioGroupWidget->setProperty("questionId", questionId);
         this->contentLayout->addWidget(radioGroupWidget);
     } else if (questionType == "drop down") {
         QComboBox *dropdown = new QComboBox(this);  // Assign 'this' as the parent
@@ -105,12 +106,14 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
         }
 
         dropdown->setProperty("questionId", questionId);
+        dropdown->setProperty("questionType", "drop down");
         this->contentLayout->addWidget(dropdown);
-    } else if (questionType == "checkbox") {  // Adding support for checkbox questions
+    } else if (questionType == "checkbox") {
         QWidget *checkboxGroupWidget = new QWidget(this);  // Assign 'this' as the parent
         QVBoxLayout *checkboxLayout = new QVBoxLayout(checkboxGroupWidget);
 
         checkboxGroupWidget->setProperty("questionId", questionId);
+        checkboxGroupWidget->setProperty("questionType", "checkbox");
 
         // Populate checkboxes with options from the database
         for (const auto &option : options) {
@@ -122,6 +125,7 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
         this->contentLayout->addWidget(checkboxGroupWidget);
     }
 }
+
 
 // Function to create the Save button and add it to the mainAreaLayout
 void AskQuestionsUI::createSaveButton(QVBoxLayout *mainAreaLayout) {
@@ -156,45 +160,84 @@ void AskQuestionsUI::saveAnswers() {
             continue;  // If it's not a widget, skip
         }
 
-        // Handle free response questions (QLineEdit)
-        if (QLineEdit *freeResponseInput = qobject_cast<QLineEdit*>(widget)) {
-            int questionId = freeResponseInput->property("questionId").toInt();
-            QString answerText = freeResponseInput->text();
+        QString questionType = widget->property("questionType").toString();
 
-            if (!dbManager->updateFreeResponseAnswer(questionId, answerText)) {
-                qDebug() << "Failed to update free response answer!";
+        // Handle free response questions (QLineEdit)
+        if (questionType == "free response") {
+            QLineEdit *freeResponseInput = qobject_cast<QLineEdit*>(widget);
+            if (freeResponseInput) {
+                int questionId = freeResponseInput->property("questionId").toInt();
+                QString answerText = freeResponseInput->text();
+
+                if (!dbManager->updateFreeResponseAnswer(questionId, answerText)) {
+                    qDebug() << "Failed to update free response answer!";
+                }
             }
 
             // Handle radio button questions (inside QWidget)
-        } else if (QComboBox *dropdown = qobject_cast<QComboBox*>(widget)) {
-            int questionId = dropdown->property("questionId").toInt();
-            int selectedOptionId = dropdown->currentData().toInt();  // Get the optionId for the selected item
+        } else if (questionType == "radio buttons") {
+            QWidget *radioGroupWidget = qobject_cast<QWidget*>(widget);
+            if (radioGroupWidget) {
+                int questionId = radioGroupWidget->property("questionId").toInt();
+                qDebug() << "radio button" << questionId;
 
-            if (!dbManager->updateDropdownAnswer(questionId, selectedOptionId)) {
-                qDebug() << "Failed to update dropdown answer!";
-            }
-        } else if (QWidget *radioGroupWidget = qobject_cast<QWidget*>(widget)) {
-            int questionId = radioGroupWidget->property("questionId").toInt();
+                QVBoxLayout *radioLayout = qobject_cast<QVBoxLayout*>(radioGroupWidget->layout());
+                if (radioLayout) {
+                    for (int j = 0; j < radioLayout->count(); ++j) {
+                        QRadioButton *radioButton = qobject_cast<QRadioButton*>(radioLayout->itemAt(j)->widget());
+                        if (radioButton && radioButton->isChecked()) {
+                            int optionId = radioButton->property("optionId").toInt();
 
-            // Find the selected radio button
-            QVBoxLayout *radioLayout = qobject_cast<QVBoxLayout*>(radioGroupWidget->layout());
-            if (radioLayout) {
-                for (int j = 0; j < radioLayout->count(); ++j) {
-                    QRadioButton *radioButton = qobject_cast<QRadioButton*>(radioLayout->itemAt(j)->widget());
-                    if (radioButton && radioButton->isChecked()) {
-                        int optionId = radioButton->property("optionId").toInt();
-
-                        if (!dbManager->updateRadioButtonAnswer(questionId, optionId)) {
-                            qDebug() << "Failed to update radio button answer!";
+                            if (!dbManager->updateRadioButtonAnswer(questionId, optionId)) {
+                                qDebug() << "Failed to update radio button answer!";
+                            }
+                            break;  // Stop after finding the selected radio button
                         }
-                        break;  // Stop after finding the selected radio button
                     }
                 }
             }
 
             // Handle dropdown questions (QComboBox)
+        } else if (questionType == "drop down") {
+            QComboBox *dropdown = qobject_cast<QComboBox*>(widget);
+            if (dropdown) {
+                int questionId = dropdown->property("questionId").toInt();
+                int selectedOptionId = dropdown->currentData().toInt();  // Get the optionId for the selected item
+
+                if (!dbManager->updateDropdownAnswer(questionId, selectedOptionId)) {
+                    qDebug() << "Failed to update dropdown answer!";
+                }
+            }
+
+            // Handle checkbox questions
+        } else if (questionType == "checkbox") {
+            QWidget *checkboxGroupWidget = qobject_cast<QWidget*>(widget);
+            if (checkboxGroupWidget) {
+                int questionId = checkboxGroupWidget->property("questionId").toInt();
+                qDebug() << "checkbox" << questionId;
+
+                QVBoxLayout *checkboxLayout = qobject_cast<QVBoxLayout*>(checkboxGroupWidget->layout());
+                if (checkboxLayout) {
+                    QList<int> selectedOptionIds;
+
+                    // Iterate through all checkboxes and collect the selected ones
+                    for (int j = 0; j < checkboxLayout->count(); ++j) {
+                        QCheckBox *checkBox = qobject_cast<QCheckBox*>(checkboxLayout->itemAt(j)->widget());
+                        if (checkBox && checkBox->isChecked()) {
+                            int optionId = checkBox->property("optionId").toInt();
+                            selectedOptionIds.append(optionId);
+                        }
+                    }
+
+                    // Update the checkbox question with the selected options
+                    if (!dbManager->updateCheckboxQuestion(questionId, selectedOptionIds)) {
+                        qDebug() << "Failed to update checkbox question!";
+                    }
+                }
+            }
         }
     }
 }
+
 
 

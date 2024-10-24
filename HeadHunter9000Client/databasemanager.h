@@ -17,7 +17,7 @@ public:
     bool updateFreeResponseAnswer(int questionId, const QString &answerText);
     bool updateRadioButtonAnswer(int questionId, int optionId);
     bool updateDropdownAnswer(int questionId, int optionId);
-
+    bool updateCheckboxQuestion(int questionId, const QList<int> &selectedOptionIds);
 private:
     QString databasePath;
     QSqlDatabase db;

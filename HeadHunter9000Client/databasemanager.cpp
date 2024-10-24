@@ -120,3 +120,29 @@ bool DatabaseManager::updateDropdownAnswer(int questionId, int optionId) {
 
     return true;
 }
+
+bool DatabaseManager::updateCheckboxQuestion(int questionId, const QList<int> &selectedOptionIds) {
+    QSqlQuery query;
+
+    // Start by removing any answers that are not in the selectedOptionIds
+    query.prepare("DELETE FROM checkboxanswers WHERE checkboxquestionid = :questionId AND answerasoptionid NOT IN (:selectedOptionIds)");
+    query.bindValue(":questionId", questionId);
+    query.bindValue(":selectedOptionIds", QVariant::fromValue(selectedOptionIds));  // Binds the selectedOptionIds list
+    if (!query.exec()) {
+        qDebug() << "Failed to delete unselected checkbox answers:" << query.lastError();
+        return false;
+    }
+
+    // Now ensure that all selected options are in the database
+    for (int optionId : selectedOptionIds) {
+        query.prepare("INSERT OR IGNORE INTO checkboxanswers (checkboxquestionid, answerasoptionid) VALUES (:questionId, :optionId)");
+        query.bindValue(":questionId", questionId);
+        query.bindValue(":optionId", optionId);
+        if (!query.exec()) {
+            qDebug() << "Failed to insert selected checkbox answer:" << query.lastError();
+            return false;
+        }
+    }
+
+    return true;
+}
