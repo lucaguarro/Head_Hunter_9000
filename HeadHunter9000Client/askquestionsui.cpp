@@ -8,6 +8,7 @@
 #include <QLineEdit>
 #include <QRadioButton>
 #include <QComboBox>
+#include <QCheckBox>
 
 AskQuestionsUI::AskQuestionsUI(QWidget *parent, DatabaseManager *dbManager)
     : QWidget(parent)
@@ -105,6 +106,20 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
 
         dropdown->setProperty("questionId", questionId);
         this->contentLayout->addWidget(dropdown);
+    } else if (questionType == "checkbox") {  // Adding support for checkbox questions
+        QWidget *checkboxGroupWidget = new QWidget(this);  // Assign 'this' as the parent
+        QVBoxLayout *checkboxLayout = new QVBoxLayout(checkboxGroupWidget);
+
+        checkboxGroupWidget->setProperty("questionId", questionId);
+
+        // Populate checkboxes with options from the database
+        for (const auto &option : options) {
+            QCheckBox *checkBox = new QCheckBox(option.first, this);  // Assign 'this' as the parent
+            checkBox->setProperty("optionId", option.second);  // Store option ID as property
+            checkboxLayout->addWidget(checkBox);
+        }
+
+        this->contentLayout->addWidget(checkboxGroupWidget);
     }
 }
 

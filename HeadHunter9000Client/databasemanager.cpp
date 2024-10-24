@@ -51,7 +51,17 @@ QList<QPair<QString, int>> DatabaseManager::fetchOptionsForQuestion(const QStrin
             "INNER JOIN dropdownquestion ddq ON os.id = ddq.optionsetid "
             "WHERE ddq.id = :questionId;"
             );
+    } else if (questionType == "checkbox") {
+        query.prepare(
+            "SELECT o.id, o.text "
+            "FROM option o "
+            "INNER JOIN optionsetoption oso ON o.id = oso.optionid "
+            "INNER JOIN optionset os ON oso.optionsetid = os.id "
+            "INNER JOIN checkboxquestion ddq ON os.id = ddq.optionsetid "
+            "WHERE ddq.id = :questionId;"
+            );
     }
+
 
     query.bindValue(":questionId", questionId);
 

@@ -12,7 +12,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     // Initialize the database manager with the path to the SQLite file
-    dbManager = new DatabaseManager("/home/luca/Documents/Projects/Head_Hunter_9000/example.db");
+    // dbManager = new DatabaseManager("/home/luca/Documents/Projects/Head_Hunter_9000/example.db");
+    dbManager = new DatabaseManager("/home/luca/Documents/Projects/Head_Hunter_9000/DatabaseStorage/jobappstest.db");
 
     // SidebarMenu is at index 0, scrollArea is at index 1 in the splitter
     ui->splitter->setStretchFactor(0, 0);  // SidebarMenu gets no stretch (fixed size)
