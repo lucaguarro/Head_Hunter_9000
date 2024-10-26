@@ -19,6 +19,7 @@ public:
 private slots:
     void loadQuestions(); // Load questions into the table
     void updateAnswers(); // Update answers in the database
+    // void showEvent(QShowEvent *event);
 
 private:
     QVBoxLayout* mainLayout;  // Main layout of the widget

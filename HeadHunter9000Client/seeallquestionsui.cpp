@@ -16,21 +16,43 @@ SeeAllQuestionsUI::SeeAllQuestionsUI(QWidget *parent, DatabaseManager *dbManager
     tableWidget = new QTableWidget(this);
     tableWidget->setColumnCount(4);
     tableWidget->setHorizontalHeaderLabels({"Id", "Question Type", "Question", "Answer"});
-    tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+    QHeaderView *header = tableWidget->horizontalHeader();
+
+    // Allow the user to resize columns
+    header->setSectionResizeMode(QHeaderView::Interactive);
+
+    // Stretch the last section to fill remaining space
+    header->setStretchLastSection(true);
+
+    // Optional: Enable cascading section resizes
+    header->setCascadingSectionResizes(true);
+
+    // Set size policy to ensure table takes up all available space
+    tableWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    // Disable horizontal scrollbar to prevent table from expanding beyond layout
+    tableWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    // Optional: Adjust vertical scrollbar policy
+    tableWidget->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
     tableWidget->setSortingEnabled(true);  // Enable sorting by columns
 
     mainLayout->addWidget(tableWidget);
 
-    // Step 2: Create update button
+    // Step 3: Create update button
     updateButton = new QPushButton("Update Answers", this);
     connect(updateButton, &QPushButton::clicked, this, &SeeAllQuestionsUI::updateAnswers);
     mainLayout->addWidget(updateButton);
 
-    // Step 3: Load questions from the database
+    // Step 4: Load questions from the database
     if (dbManager->connectToDatabase()) {
         loadQuestions();
     }
 }
+
+
 
 SeeAllQuestionsUI::~SeeAllQuestionsUI()
 {
@@ -76,6 +98,10 @@ QWidget* SeeAllQuestionsUI::createEditorWidget(const QString& questionType, int 
     if (questionType == "free response") {
         QLineEdit* lineEdit = new QLineEdit(currentAnswer, this);
         lineEdit->setProperty("questionId", questionId);
+
+        // Set the size policy to allow it to expand with the column
+        lineEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
         return lineEdit;
     }
     else if (questionType == "drop down" || questionType == "radio buttons") {
@@ -95,6 +121,9 @@ QWidget* SeeAllQuestionsUI::createEditorWidget(const QString& questionType, int 
         } else {
             comboBox->setCurrentText(currentAnswer);  // Set the current answer if it's available
         }
+
+        // Set the size policy to allow it to expand with the column
+        comboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
         comboBox->setProperty("questionId", questionId);
         return comboBox;
@@ -136,6 +165,9 @@ QWidget* SeeAllQuestionsUI::createEditorWidget(const QString& questionType, int 
         // Store checkboxes and the questionId in properties
         comboBox->setProperty("checkboxes", QVariant::fromValue(checkboxes));
         comboBox->setProperty("questionId", questionId);
+
+        // Set the size policy to allow it to expand with the column
+        comboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
         return comboBox;
     }
