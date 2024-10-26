@@ -18,6 +18,7 @@ public:
     bool updateRadioButtonAnswer(int questionId, int optionId);
     bool updateDropdownAnswer(int questionId, int optionId);
     bool updateCheckboxQuestion(int questionId, const QList<int> &selectedOptionIds);
+    QString fetchAnswerForQuestion(int questionId, const QString &questionType);
 private:
     QString databasePath;
     QSqlDatabase db;

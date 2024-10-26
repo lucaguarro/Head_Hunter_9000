@@ -146,3 +146,54 @@ bool DatabaseManager::updateCheckboxQuestion(int questionId, const QList<int> &s
 
     return true;
 }
+
+QString DatabaseManager::fetchAnswerForQuestion(int questionId, const QString& questionType) {
+    QSqlQuery query;
+    QString answer;
+
+    // Query based on the questionType passed as parameter
+    if (questionType == "free response") {
+        query.prepare("SELECT answer FROM freeresponsequestion WHERE id = :questionId");
+    }
+    else if (questionType == "radio buttons") {
+        query.prepare("SELECT o.text FROM option o "
+                      "INNER JOIN radiobuttonquestion rbq ON rbq.answerasoptionid = o.id "
+                      "WHERE rbq.id = :questionId");
+    }
+    else if (questionType == "drop down") {
+        query.prepare("SELECT o.text FROM option o "
+                      "INNER JOIN dropdownquestion ddq ON ddq.answerasoptionid = o.id "
+                      "WHERE ddq.id = :questionId");
+    }
+    else if (questionType == "checkbox") {
+        query.prepare("SELECT GROUP_CONCAT(o.text, '; ') "
+                      "FROM option o "
+                      "INNER JOIN checkboxanswers ca ON o.id = ca.answerasoptionid "
+                      "WHERE ca.checkboxquestionid = :questionId");
+    }
+    else {
+        qDebug() << "Unknown question type:" << questionType;
+        return answer;
+    }
+
+    query.bindValue(":questionId", questionId);
+
+    // Execute the query and fetch the answer
+    if (query.exec()) {
+        if (query.next()) {
+            // Check if the result is NULL (for radio button or drop-down, answerasoptionid can be NULL)
+            if (query.value(0).isNull()) {
+                answer = "";  // No answer present, set empty string to indicate no selection
+            } else {
+                answer = query.value(0).toString();  // Get the answer text
+            }
+        } else {
+            qDebug() << "No answer found for question" << questionId;
+        }
+    } else {
+        qDebug() << "Error fetching answer for question" << questionId << ":" << query.lastError();
+    }
+
+    return answer;
+}
+

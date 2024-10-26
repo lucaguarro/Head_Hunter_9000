@@ -6,6 +6,7 @@
 #include <QVBoxLayout>
 #include "askquestionsui.h"
 #include "databasemanager.h"
+#include "seeallquestionsui.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -23,10 +24,12 @@ public:
 
 private slots:
     void on_AnswerQuestionsBtn_clicked();
+    void on_SeeAllQuestionsBtn_clicked();
 
 private:
     Ui::MainWindow *ui;
     AskQuestionsUI* askquestionsui;
+    SeeAllQuestionsUI* seeallquestionsui;
 
     QPushButton* previousButton;
 
@@ -37,8 +40,6 @@ private:
     // Function to load and display questions from the database
     void saveData();
     void onSidebarButtonClicked(QPushButton *clickedButton, const QList<QPushButton *> &buttons);
-    void cleanUpAnswerQuestionsPage();
-    void cleanUpSeeAllQuestionsPage();
     void cleanUpScraperConfigPage();
     void cleanUpJobSearchCriteriaPage();
     QVBoxLayout *setupScrollAreaAndSaveButton();

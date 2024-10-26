@@ -12,12 +12,14 @@ SOURCES += \
     askquestionsui.cpp \
     databasemanager.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    seeallquestionsui.cpp
 
 HEADERS += \
     askquestionsui.h \
     databasemanager.h \
-    mainwindow.h
+    mainwindow.h \
+    seeallquestionsui.h
 
 FORMS += \
     mainwindow.ui

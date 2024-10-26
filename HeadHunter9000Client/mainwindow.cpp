@@ -1,5 +1,6 @@
 #include "askquestionsui.h"
 #include "mainwindow.h"
+#include "seeallquestionsui.h"
 #include "ui_mainwindow.h"
 #include <QDebug>
 #include <QVBoxLayout>
@@ -28,13 +29,6 @@ MainWindow::MainWindow(QWidget *parent)
     }
 }
 
-void MainWindow::cleanUpAnswerQuestionsPage() {
-    qDebug() << "Ayo";
-}
-
-void MainWindow::cleanUpSeeAllQuestionsPage() {
-    qDebug() << "Ayo2";
-}
 
 void MainWindow::cleanUpScraperConfigPage() {
     qDebug() << "Ayo3";
@@ -52,7 +46,7 @@ void MainWindow::onSidebarButtonClicked(QPushButton* clickedButton, const QList<
         if (previousButton == ui->AnswerQuestionsBtn) {
             delete askquestionsui;
         } else if (previousButton == ui->SeeAllQuestionsBtn) {
-            cleanUpSeeAllQuestionsPage();
+            delete seeallquestionsui;
         } else if (previousButton == ui->ScraperConfigBtn) {
             cleanUpScraperConfigPage();
         } else if (previousButton == ui->JobSearchCriteriaBtn) {
@@ -77,6 +71,13 @@ MainWindow::~MainWindow() {
     delete ui;
     delete dbManager;
 }
+
+void MainWindow::on_SeeAllQuestionsBtn_clicked()
+{
+    seeallquestionsui = new SeeAllQuestionsUI(this, this->dbManager);
+    ui->mainAreaContainer->layout()->addWidget(seeallquestionsui);
+}
+
 
 
 void MainWindow::on_AnswerQuestionsBtn_clicked()

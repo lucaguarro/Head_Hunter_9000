@@ -179,7 +179,6 @@ void AskQuestionsUI::saveAnswers() {
             QWidget *radioGroupWidget = qobject_cast<QWidget*>(widget);
             if (radioGroupWidget) {
                 int questionId = radioGroupWidget->property("questionId").toInt();
-                qDebug() << "radio button" << questionId;
 
                 QVBoxLayout *radioLayout = qobject_cast<QVBoxLayout*>(radioGroupWidget->layout());
                 if (radioLayout) {
@@ -214,7 +213,6 @@ void AskQuestionsUI::saveAnswers() {
             QWidget *checkboxGroupWidget = qobject_cast<QWidget*>(widget);
             if (checkboxGroupWidget) {
                 int questionId = checkboxGroupWidget->property("questionId").toInt();
-                qDebug() << "checkbox" << questionId;
 
                 QVBoxLayout *checkboxLayout = qobject_cast<QVBoxLayout*>(checkboxGroupWidget->layout());
                 if (checkboxLayout) {
