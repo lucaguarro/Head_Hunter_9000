@@ -29,7 +29,7 @@ private:
     DatabaseManager *dbManager;
 
     void createSaveButton(QVBoxLayout *mainAreaLayout);
-    void addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId);
+    void addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId, bool isMultiLine);
     void loadQuestions();
     void saveAnswers();
 };

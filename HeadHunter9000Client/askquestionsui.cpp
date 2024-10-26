@@ -9,6 +9,7 @@
 #include <QRadioButton>
 #include <QComboBox>
 #include <QCheckBox>
+#include <QTextEdit>
 
 AskQuestionsUI::AskQuestionsUI(QWidget *parent, DatabaseManager *dbManager)
     : QWidget(parent)
@@ -57,15 +58,16 @@ void AskQuestionsUI::loadQuestions() {
         QString questionText = query.value("question").toString();
         QString questionType = query.value("type").toString();
         int questionId = query.value("id").toInt();
+        bool isMultiLine = query.value("ismultiline").toBool();  // Retrieve isMultiLine
 
-        qDebug() << "Question:" << questionText << "Type:" << questionType;
+        qDebug() << "Question:" << questionText << "Type:" << questionType << "isMultiLine:" << isMultiLine;
 
-        // Add each question to the panel
-        addQuestionToPanel(questionText, questionType, questionId);
+        // Add each question to the panel, including isMultiLine
+        addQuestionToPanel(questionText, questionType, questionId, isMultiLine);
     }
 }
 
-void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId) {
+void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId, bool isMultiLine) {
     // Add a label for the question text
     QLabel *questionLabel = new QLabel(questionText, this);  // Assign 'this' as the parent
     questionLabel->setWordWrap(true);
@@ -79,10 +81,19 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
 
     // Depending on the question type, create the appropriate input widget
     if (questionType == "free response") {
-        QLineEdit *freeResponseInput = new QLineEdit(this);  // Assign 'this' as the parent
-        freeResponseInput->setProperty("questionId", questionId);
-        freeResponseInput->setProperty("questionType", "free response");
-        this->contentLayout->addWidget(freeResponseInput);
+        if (isMultiLine) {
+            // Create a QTextEdit for multi-line input
+            QTextEdit *freeResponseInput = new QTextEdit(this);
+            freeResponseInput->setProperty("questionId", questionId);
+            freeResponseInput->setProperty("questionType", "free response");
+            this->contentLayout->addWidget(freeResponseInput);
+        } else {
+            // Create a QLineEdit for single-line input
+            QLineEdit *freeResponseInput = new QLineEdit(this);
+            freeResponseInput->setProperty("questionId", questionId);
+            freeResponseInput->setProperty("questionType", "free response");
+            this->contentLayout->addWidget(freeResponseInput);
+        }
     } else if (questionType == "radio buttons") {
         QWidget *radioGroupWidget = new QWidget(this);  // Assign 'this' as the parent
         QVBoxLayout *radioLayout = new QVBoxLayout(radioGroupWidget);

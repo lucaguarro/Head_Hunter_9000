@@ -20,7 +20,7 @@ bool DatabaseManager::connectToDatabase() {
 
 QSqlQuery DatabaseManager::fetchQuestions() {
     QSqlQuery query;
-    query.prepare("SELECT * FROM question");
+    query.prepare("SELECT q.*, frq.ismultiline FROM question q LEFT JOIN freeresponsequestion frq ON q.id = frq.id");
 
     if (!query.exec()) {
         qDebug() << "Error fetching questions:" << query.lastError();
