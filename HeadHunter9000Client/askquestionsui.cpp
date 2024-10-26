@@ -99,6 +99,7 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
         this->contentLayout->addWidget(radioGroupWidget);
     } else if (questionType == "drop down") {
         QComboBox *dropdown = new QComboBox(this);  // Assign 'this' as the parent
+        dropdown->addItem("Select an option", -1);
 
         // Populate dropdown with options from the database
         for (const auto &option : options) {

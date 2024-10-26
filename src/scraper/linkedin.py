@@ -335,11 +335,12 @@ class Head_Hunter_9000:
                 value = option.get_attribute("value")
 
                 # Create a dictionary for each "option" element and add it to the list
-                option_dict = {
-                    "text": inner_text,
-                    "value": value
-                }
-                option_list.append(option_dict)
+                if inner_text != 'Select an option':
+                    option_dict = {
+                        "text": inner_text,
+                        "value": value
+                    }
+                    option_list.append(option_dict)
 
             questions_with_options.append((question_prompt, option_list))
 

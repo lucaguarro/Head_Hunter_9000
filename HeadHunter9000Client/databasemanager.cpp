@@ -108,6 +108,11 @@ bool DatabaseManager::updateRadioButtonAnswer(int questionId, int optionId) {
 }
 
 bool DatabaseManager::updateDropdownAnswer(int questionId, int optionId) {
+    if (optionId == -1){
+        qDebug() << "question " << questionId << "ignored";
+        return true;
+    }
+
     QSqlQuery query;
     query.prepare("UPDATE dropdownquestion SET answerasoptionid = :optionid WHERE id = :questionid");
     query.bindValue(":optionid", optionId);
