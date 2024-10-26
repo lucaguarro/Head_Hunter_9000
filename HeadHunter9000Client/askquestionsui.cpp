@@ -68,6 +68,7 @@ void AskQuestionsUI::loadQuestions() {
 void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId) {
     // Add a label for the question text
     QLabel *questionLabel = new QLabel(questionText, this);  // Assign 'this' as the parent
+    questionLabel->setWordWrap(true);
     this->contentLayout->addWidget(questionLabel);
 
     QList<QPair<QString, int>> options;  // Declare options before the if statement
