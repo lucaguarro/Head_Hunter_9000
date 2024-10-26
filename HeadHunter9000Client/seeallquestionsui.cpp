@@ -80,10 +80,22 @@ QWidget* SeeAllQuestionsUI::createEditorWidget(const QString& questionType, int 
     }
     else if (questionType == "drop down" || questionType == "radio buttons") {
         QComboBox* comboBox = new QComboBox(this);
+
+        // Add default option "Select an option"
+        comboBox->addItem("Select an option", -1);  // Using -1 as a dummy value for the default option
+
+        // Populate combo box with actual options
         for (const auto& option : options) {
             comboBox->addItem(option.first, option.second);
         }
-        comboBox->setCurrentText(currentAnswer);
+
+        // If no current answer (empty string), set the default option as selected
+        if (currentAnswer.isEmpty()) {
+            comboBox->setCurrentText("Select an option");
+        } else {
+            comboBox->setCurrentText(currentAnswer);  // Set the current answer if it's available
+        }
+
         comboBox->setProperty("questionId", questionId);
         return comboBox;
     }
