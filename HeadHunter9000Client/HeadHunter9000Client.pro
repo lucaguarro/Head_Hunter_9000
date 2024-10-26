@@ -10,6 +10,7 @@ CONFIG += c++17
 
 SOURCES += \
     askquestionsui.cpp \
+    checkablecombobox.cpp \
     databasemanager.cpp \
     main.cpp \
     mainwindow.cpp \
@@ -17,6 +18,7 @@ SOURCES += \
 
 HEADERS += \
     askquestionsui.h \
+    checkablecombobox.h \
     databasemanager.h \
     mainwindow.h \
     seeallquestionsui.h

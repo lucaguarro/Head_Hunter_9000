@@ -1,4 +1,5 @@
 #include "seeallquestionsui.h"
+#include "checkablecombobox.h"
 #include "qlineedit.h"
 #include <QHeaderView>
 #include <QComboBox>
@@ -129,21 +130,28 @@ QWidget* SeeAllQuestionsUI::createEditorWidget(const QString& questionType, int 
         return comboBox;
     }
     else if (questionType == "checkbox") {
-        // Custom ComboBox with checkboxes inside a QMenu
-        QComboBox* comboBox = new QComboBox(this);
-        comboBox->setEditable(true);  // Enable text display
+        // Use the custom CheckableComboBox
+        CheckableComboBox* comboBox = new CheckableComboBox(this);
 
         QList<QCheckBox*> checkboxes;
         QMenu* menu = new QMenu(comboBox);
 
         for (const auto& option : options) {
-            QCheckBox* checkBox = new QCheckBox(option.first, this);
+            // Create a QWidget to hold the checkbox with margins
+            QWidget* checkboxWidget = new QWidget(menu);  // Set menu as parent
+            QHBoxLayout* layout = new QHBoxLayout(checkboxWidget);
+            layout->setContentsMargins(10, 0, 10, 0);  // Set left and right margins (adjust values as needed)
+            layout->setSpacing(0);  // Optional: Set spacing between widgets to 0
+
+            QCheckBox* checkBox = new QCheckBox(option.first, checkboxWidget);
             checkBox->setProperty("optionId", option.second);
             checkboxes.append(checkBox);
 
-            // Add checkboxes to menu as actions
+            layout->addWidget(checkBox);
+
+            // Add the widget with checkbox to menu as an action
             QWidgetAction* action = new QWidgetAction(menu);
-            action->setDefaultWidget(checkBox);
+            action->setDefaultWidget(checkboxWidget);
             menu->addAction(action);
 
             // If the currentAnswer contains the option, mark it as checked
@@ -152,15 +160,17 @@ QWidget* SeeAllQuestionsUI::createEditorWidget(const QString& questionType, int 
             }
         }
 
-        // Concatenate the selected answers for display
-        comboBox->lineEdit()->setText(getCheckboxAnswersAsText(checkboxes));
+        // Set the initial text of the combo box
+        comboBox->setCurrentText(getCheckboxAnswersAsText(checkboxes));
 
-        // Connect the combo box click to show the custom menu
-        connect(comboBox->lineEdit(), &QLineEdit::editingFinished, [comboBox, menu]() {
-            // Show the menu directly under the combo box
-            QPoint pos = comboBox->mapToGlobal(QPoint(0, comboBox->height()));
-            menu->exec(pos);
-        });
+        // Connect checkbox state change to update the combo box display
+        for (QCheckBox* checkBox : checkboxes) {
+            connect(checkBox, &QCheckBox::stateChanged, [comboBox, checkboxes, this]() {
+                comboBox->setCurrentText(getCheckboxAnswersAsText(checkboxes));
+            });
+        }
+
+        comboBox->setMenu(menu);
 
         // Store checkboxes and the questionId in properties
         comboBox->setProperty("checkboxes", QVariant::fromValue(checkboxes));
