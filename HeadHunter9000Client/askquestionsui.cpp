@@ -52,7 +52,8 @@ QVBoxLayout* AskQuestionsUI::getContentLayout() const {
 }
 
 void AskQuestionsUI::loadQuestions() {
-    QSqlQuery query = dbManager->fetchQuestions();  // Fetch questions using the DatabaseManager
+    bool excludeAnswered = true;
+    QSqlQuery query = dbManager->fetchQuestions(excludeAnswered);  // Fetch questions using the DatabaseManager
 
     while (query.next()) {
         QString questionText = query.value("question").toString();
@@ -68,10 +69,14 @@ void AskQuestionsUI::loadQuestions() {
 }
 
 void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QString &questionType, int questionId, bool isMultiLine) {
+    // Create a container widget for the question label and input
+    QWidget *questionContainer = new QWidget(this);  // Assign 'this' as the parent
+    QVBoxLayout *questionLayout = new QVBoxLayout(questionContainer);
+
     // Add a label for the question text
     QLabel *questionLabel = new QLabel(questionText, this);  // Assign 'this' as the parent
     questionLabel->setWordWrap(true);
-    this->contentLayout->addWidget(questionLabel);
+    questionLayout->addWidget(questionLabel);
 
     QList<QPair<QString, int>> options;  // Declare options before the if statement
 
@@ -82,17 +87,15 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
     // Depending on the question type, create the appropriate input widget
     if (questionType == "free response") {
         if (isMultiLine) {
-            // Create a QTextEdit for multi-line input
             QTextEdit *freeResponseInput = new QTextEdit(this);
             freeResponseInput->setProperty("questionId", questionId);
             freeResponseInput->setProperty("questionType", "free response");
-            this->contentLayout->addWidget(freeResponseInput);
+            questionLayout->addWidget(freeResponseInput);
         } else {
-            // Create a QLineEdit for single-line input
             QLineEdit *freeResponseInput = new QLineEdit(this);
             freeResponseInput->setProperty("questionId", questionId);
             freeResponseInput->setProperty("questionType", "free response");
-            this->contentLayout->addWidget(freeResponseInput);
+            questionLayout->addWidget(freeResponseInput);
         }
     } else if (questionType == "radio buttons") {
         QWidget *radioGroupWidget = new QWidget(this);  // Assign 'this' as the parent
@@ -108,7 +111,7 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
             radioLayout->addWidget(radioButton);
         }
 
-        this->contentLayout->addWidget(radioGroupWidget);
+        questionLayout->addWidget(radioGroupWidget);
     } else if (questionType == "drop down") {
         QComboBox *dropdown = new QComboBox(this);  // Assign 'this' as the parent
         dropdown->addItem("Select an option", -1);
@@ -120,7 +123,7 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
 
         dropdown->setProperty("questionId", questionId);
         dropdown->setProperty("questionType", "drop down");
-        this->contentLayout->addWidget(dropdown);
+        questionLayout->addWidget(dropdown);
     } else if (questionType == "checkbox") {
         QWidget *checkboxGroupWidget = new QWidget(this);  // Assign 'this' as the parent
         QVBoxLayout *checkboxLayout = new QVBoxLayout(checkboxGroupWidget);
@@ -135,9 +138,13 @@ void AskQuestionsUI::addQuestionToPanel(const QString &questionText, const QStri
             checkboxLayout->addWidget(checkBox);
         }
 
-        this->contentLayout->addWidget(checkboxGroupWidget);
+        questionLayout->addWidget(checkboxGroupWidget);
     }
+
+    // Add the entire question container to the content layout
+    this->contentLayout->addWidget(questionContainer);
 }
+
 
 
 // Function to create the Save button and add it to the mainAreaLayout
@@ -167,88 +174,115 @@ void AskQuestionsUI::saveAnswers() {
 
     // Iterate over all widgets in the contentLayout
     for (int i = 0; i < contentLayout->count(); ++i) {
-        QWidget *widget = contentLayout->itemAt(i)->widget();
+        QWidget *questionContainer = contentLayout->itemAt(i)->widget();
 
-        if (!widget) {
+        if (!questionContainer) {
             continue;  // If it's not a widget, skip
         }
 
-        QString questionType = widget->property("questionType").toString();
+        QString questionType = questionContainer->property("questionType").toString();
+        bool answered = false;  // Track if this question was answered
 
-        // Handle free response questions (QLineEdit)
-        if (questionType == "free response") {
-            QLineEdit *freeResponseInput = qobject_cast<QLineEdit*>(widget);
-            if (freeResponseInput) {
-                int questionId = freeResponseInput->property("questionId").toInt();
-                QString answerText = freeResponseInput->text();
+        // Iterate through children of questionContainer to find the input widget
+        for (QWidget *child : questionContainer->findChildren<QWidget*>()) {
+            QString childQuestionType = child->property("questionType").toString();
 
-                if (!dbManager->updateFreeResponseAnswer(questionId, answerText)) {
-                    qDebug() << "Failed to update free response answer!";
-                }
-            }
+            // Handle free response questions (QLineEdit)
+            if (childQuestionType == "free response") {
+                QLineEdit *freeResponseInput = qobject_cast<QLineEdit*>(child);
+                if (freeResponseInput) {
+                    int questionId = freeResponseInput->property("questionId").toInt();
+                    QString answerText = freeResponseInput->text().trimmed();  // Trim whitespace
 
-            // Handle radio button questions (inside QWidget)
-        } else if (questionType == "radio buttons") {
-            QWidget *radioGroupWidget = qobject_cast<QWidget*>(widget);
-            if (radioGroupWidget) {
-                int questionId = radioGroupWidget->property("questionId").toInt();
-
-                QVBoxLayout *radioLayout = qobject_cast<QVBoxLayout*>(radioGroupWidget->layout());
-                if (radioLayout) {
-                    for (int j = 0; j < radioLayout->count(); ++j) {
-                        QRadioButton *radioButton = qobject_cast<QRadioButton*>(radioLayout->itemAt(j)->widget());
-                        if (radioButton && radioButton->isChecked()) {
-                            int optionId = radioButton->property("optionId").toInt();
-
-                            if (!dbManager->updateRadioButtonAnswer(questionId, optionId)) {
-                                qDebug() << "Failed to update radio button answer!";
-                            }
-                            break;  // Stop after finding the selected radio button
+                    if (!answerText.isEmpty()) {
+                        // Only update if there's a non-empty answer
+                        if (dbManager->updateFreeResponseAnswer(questionId, answerText)) {
+                            answered = true;
+                        } else {
+                            qDebug() << "Failed to update free response answer!";
                         }
                     }
                 }
-            }
 
-            // Handle dropdown questions (QComboBox)
-        } else if (questionType == "drop down") {
-            QComboBox *dropdown = qobject_cast<QComboBox*>(widget);
-            if (dropdown) {
-                int questionId = dropdown->property("questionId").toInt();
-                int selectedOptionId = dropdown->currentData().toInt();  // Get the optionId for the selected item
+                // Handle radio button questions (QRadioButton)
+            } else if (childQuestionType == "radio buttons") {
+                QWidget *radioGroupWidget = qobject_cast<QWidget*>(child);
+                if (radioGroupWidget) {
+                    int questionId = radioGroupWidget->property("questionId").toInt();
+                    QVBoxLayout *radioLayout = qobject_cast<QVBoxLayout*>(radioGroupWidget->layout());
 
-                if (!dbManager->updateDropdownAnswer(questionId, selectedOptionId)) {
-                    qDebug() << "Failed to update dropdown answer!";
+                    if (radioLayout) {
+                        for (int j = 0; j < radioLayout->count(); ++j) {
+                            QRadioButton *radioButton = qobject_cast<QRadioButton*>(radioLayout->itemAt(j)->widget());
+                            if (radioButton && radioButton->isChecked()) {
+                                int optionId = radioButton->property("optionId").toInt();
+                                if (dbManager->updateRadioButtonAnswer(questionId, optionId)) {
+                                    answered = true;
+                                } else {
+                                    qDebug() << "Failed to update radio button answer!";
+                                }
+                                break;  // Stop after finding the selected radio button
+                            }
+                        }
+                    }
                 }
-            }
 
-            // Handle checkbox questions
-        } else if (questionType == "checkbox") {
-            QWidget *checkboxGroupWidget = qobject_cast<QWidget*>(widget);
-            if (checkboxGroupWidget) {
-                int questionId = checkboxGroupWidget->property("questionId").toInt();
+                // Handle dropdown questions (QComboBox)
+            } else if (childQuestionType == "drop down") {
+                QComboBox *dropdown = qobject_cast<QComboBox*>(child);
+                if (dropdown) {
+                    int questionId = dropdown->property("questionId").toInt();
+                    int selectedOptionId = dropdown->currentData().toInt();  // Get the optionId for the selected item
 
-                QVBoxLayout *checkboxLayout = qobject_cast<QVBoxLayout*>(checkboxGroupWidget->layout());
-                if (checkboxLayout) {
+                    if (selectedOptionId != -1) {  // Ensure an option is selected
+                        if (dbManager->updateDropdownAnswer(questionId, selectedOptionId)) {
+                            answered = true;
+                        } else {
+                            qDebug() << "Failed to update dropdown answer!";
+                        }
+                    }
+                }
+
+                // Handle checkbox questions (QCheckBox)
+            } else if (childQuestionType == "checkbox") {
+                QWidget *checkboxGroupWidget = qobject_cast<QWidget*>(child);
+                if (checkboxGroupWidget) {
+                    int questionId = checkboxGroupWidget->property("questionId").toInt();
+                    QVBoxLayout *checkboxLayout = qobject_cast<QVBoxLayout*>(checkboxGroupWidget->layout());
                     QList<int> selectedOptionIds;
 
                     // Iterate through all checkboxes and collect the selected ones
-                    for (int j = 0; j < checkboxLayout->count(); ++j) {
-                        QCheckBox *checkBox = qobject_cast<QCheckBox*>(checkboxLayout->itemAt(j)->widget());
-                        if (checkBox && checkBox->isChecked()) {
-                            int optionId = checkBox->property("optionId").toInt();
-                            selectedOptionIds.append(optionId);
+                    if (checkboxLayout) {
+                        for (int j = 0; j < checkboxLayout->count(); ++j) {
+                            QCheckBox *checkBox = qobject_cast<QCheckBox*>(checkboxLayout->itemAt(j)->widget());
+                            if (checkBox && checkBox->isChecked()) {
+                                int optionId = checkBox->property("optionId").toInt();
+                                selectedOptionIds.append(optionId);
+                            }
                         }
-                    }
 
-                    // Update the checkbox question with the selected options
-                    if (!dbManager->updateCheckboxQuestion(questionId, selectedOptionIds)) {
-                        qDebug() << "Failed to update checkbox question!";
+                        // Only update if there are selected checkboxes
+                        if (!selectedOptionIds.isEmpty()) {
+                            if (dbManager->updateCheckboxQuestion(questionId, selectedOptionIds)) {
+                                answered = true;
+                            } else {
+                                qDebug() << "Failed to update checkbox question!";
+                            }
+                        }
                     }
                 }
             }
         }
+
+        // If the question was answered, remove the entire questionContainer (including label and input)
+        if (answered) {
+            contentLayout->removeWidget(questionContainer);  // Remove the container from the layout
+            questionContainer->deleteLater();  // Schedule the container for deletion
+            --i;  // Adjust index because the layout count has changed
+        }
     }
 }
+
 
 
 

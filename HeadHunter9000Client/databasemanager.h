@@ -10,7 +10,6 @@ public:
     DatabaseManager(const QString &databasePath);
 
     bool connectToDatabase();
-    QSqlQuery fetchQuestions();
     QList<QPair<QString, int>> fetchOptionsForQuestion(const QString &questionType, int questionId);
 
     // New methods for updating the answers
@@ -19,6 +18,7 @@ public:
     bool updateDropdownAnswer(int questionId, int optionId);
     bool updateCheckboxQuestion(int questionId, const QList<int> &selectedOptionIds);
     QString fetchAnswerForQuestion(int questionId, const QString &questionType);
+    QSqlQuery fetchQuestions(bool excludeAnswered);
 private:
     QString databasePath;
     QSqlDatabase db;

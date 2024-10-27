@@ -18,9 +18,32 @@ bool DatabaseManager::connectToDatabase() {
     return true;
 }
 
-QSqlQuery DatabaseManager::fetchQuestions() {
+QSqlQuery DatabaseManager::fetchQuestions(bool excludeAnswered) {
     QSqlQuery query;
-    query.prepare("SELECT q.*, frq.ismultiline FROM question q LEFT JOIN freeresponsequestion frq ON q.id = frq.id");
+
+    QString queryString = R"(
+        SELECT q.*, frq.ismultiline
+        FROM question q
+        LEFT JOIN freeresponsequestion frq ON q.id = frq.id
+        LEFT JOIN radiobuttonquestion rbq ON q.id = rbq.id
+        LEFT JOIN dropdownquestion ddq ON q.id = ddq.id
+        LEFT JOIN checkboxquestion cbq ON q.id = cbq.id
+    )";
+
+    if (excludeAnswered) {
+        queryString += R"(
+            WHERE (
+                frq.answer IS NULL
+                AND rbq.answerasoptionid IS NULL
+                AND ddq.answerasoptionid IS NULL
+                AND NOT EXISTS (
+                    SELECT 1 FROM checkboxanswers ca WHERE ca.checkboxquestionid = cbq.id
+                )
+            )
+        )";
+    }
+
+    query.prepare(queryString);
 
     if (!query.exec()) {
         qDebug() << "Error fetching questions:" << query.lastError();
@@ -28,6 +51,7 @@ QSqlQuery DatabaseManager::fetchQuestions() {
 
     return query;  // Return the query object to be processed elsewhere
 }
+
 
 QList<QPair<QString, int>> DatabaseManager::fetchOptionsForQuestion(const QString &questionType, int questionId) {
     QList<QPair<QString, int>> options;  // List to store the options (text and ID)

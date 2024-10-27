@@ -62,8 +62,9 @@ SeeAllQuestionsUI::~SeeAllQuestionsUI()
 
 void SeeAllQuestionsUI::loadQuestions()
 {
-    // Fetch questions from the database
-    QSqlQuery query = dbManager->fetchQuestions();
+    // Fetch all questions from the database regardless of whether they are answered or not
+    bool excludeAnswered = false;
+    QSqlQuery query = dbManager->fetchQuestions(excludeAnswered);
 
     int row = 0;
     while (query.next()) {
