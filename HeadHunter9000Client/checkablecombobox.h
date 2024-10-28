@@ -11,12 +11,13 @@ public:
     explicit CheckableComboBox(QWidget* parent = nullptr);
 
     void setMenu(QMenu* menu);
+    QMenu* m_menu = nullptr;
 
 protected:
     void showPopup() override;
 
 private:
-    QMenu* m_menu = nullptr;
+
 };
 
 #endif // CHECKABLECOMBOBOX_H

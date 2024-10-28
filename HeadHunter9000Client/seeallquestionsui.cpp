@@ -14,6 +14,11 @@ SeeAllQuestionsUI::SeeAllQuestionsUI(QWidget *parent, DatabaseManager *dbManager
     // Step 1: Create main layout and table
     mainLayout = new QVBoxLayout(this);
 
+    // Create search box for filtering questions
+    searchBox = new QLineEdit(this);
+    searchBox->setPlaceholderText("Search questions...");
+    mainLayout->addWidget(searchBox);
+
     tableWidget = new QTableWidget(this);
     tableWidget->setColumnCount(4);
     tableWidget->setHorizontalHeaderLabels({"Id", "Question Type", "Question", "Answer"});
@@ -47,13 +52,33 @@ SeeAllQuestionsUI::SeeAllQuestionsUI(QWidget *parent, DatabaseManager *dbManager
     connect(updateButton, &QPushButton::clicked, this, &SeeAllQuestionsUI::updateAnswers);
     mainLayout->addWidget(updateButton);
 
+    // Step 4: Connect searchBox text change to filter function
+    connect(searchBox, &QLineEdit::textChanged, this, &SeeAllQuestionsUI::filterQuestions);
+
+
     // Step 4: Load questions from the database
     if (dbManager->connectToDatabase()) {
         loadQuestions();
     }
 }
 
+void SeeAllQuestionsUI::filterQuestions(const QString &searchText)
+{
+    // Loop through all rows in the table
+    for (int row = 0; row < tableWidget->rowCount(); ++row) {
+        // Get the question text from column 2
+        QTableWidgetItem* questionItem = tableWidget->item(row, 2);
+        if (questionItem) {
+            QString questionText = questionItem->text();
 
+            // Check if the question contains the search text (case-insensitive)
+            bool match = questionText.contains(searchText, Qt::CaseInsensitive);
+
+            // Show or hide the row based on whether the text matches
+            tableWidget->setRowHidden(row, !match);
+        }
+    }
+}
 
 SeeAllQuestionsUI::~SeeAllQuestionsUI()
 {
@@ -104,6 +129,10 @@ QWidget* SeeAllQuestionsUI::createEditorWidget(const QString& questionType, int 
         // Set the size policy to allow it to expand with the column
         lineEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
+        connect(lineEdit, &QLineEdit::textChanged, [this, questionId]() {
+            markQuestionAsModified(questionId);
+        });
+
         return lineEdit;
     }
     else if (questionType == "drop down" || questionType == "radio buttons") {
@@ -128,6 +157,11 @@ QWidget* SeeAllQuestionsUI::createEditorWidget(const QString& questionType, int 
         comboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
 
         comboBox->setProperty("questionId", questionId);
+
+        connect(comboBox, QOverload<int>::of(&QComboBox::currentIndexChanged), [this, questionId](int) {
+            markQuestionAsModified(questionId);
+        });
+
         return comboBox;
     }
     else if (questionType == "checkbox") {
@@ -166,8 +200,9 @@ QWidget* SeeAllQuestionsUI::createEditorWidget(const QString& questionType, int 
 
         // Connect checkbox state change to update the combo box display
         for (QCheckBox* checkBox : checkboxes) {
-            connect(checkBox, &QCheckBox::stateChanged, [comboBox, checkboxes, this]() {
+            connect(checkBox, &QCheckBox::stateChanged, [comboBox, checkboxes, this, questionId]() {
                 comboBox->setCurrentText(getCheckboxAnswersAsText(checkboxes));
+                markQuestionAsModified(questionId);
             });
         }
 
@@ -197,34 +232,91 @@ QString SeeAllQuestionsUI::getCheckboxAnswersAsText(const QList<QCheckBox*>& che
     return selectedOptions.join("; ");
 }
 
+void SeeAllQuestionsUI::markQuestionAsModified(int questionId)
+{
+    modifiedQuestionIds.insert(questionId);
+}
+
 void SeeAllQuestionsUI::updateAnswers()
 {
-    qDebug() << "test";
-    // for (int i = 0; i < tableWidget->rowCount(); ++i) {
-    //     QWidget* widget = tableWidget->cellWidget(i, 3);  // Get the answer widget in column 4
+    // Iterate over all rows in the table
+    for (int row = 0; row < tableWidget->rowCount(); ++row) {
+        QTableWidgetItem* idItem = tableWidget->item(row, 0); // Id column
+        if (!idItem)
+            continue;
 
-    //     if (QLineEdit* lineEdit = qobject_cast<QLineEdit*>(widget)) {
-    //         int questionId = lineEdit->property("questionId").toInt();
-    //         QString answerText = lineEdit->text();
-    //         dbManager->updateFreeResponseAnswer(questionId, answerText);
-    //     }
-    //     else if (QComboBox* comboBox = qobject_cast<QComboBox*>(widget)) {
-    //         int questionId = comboBox->property("questionId").toInt();
-    //         if (comboBox->property("checkboxes").isValid()) {
-    //             // Checkbox question
-    //             QList<QCheckBox*> checkboxes = comboBox->property("checkboxes").value<QList<QCheckBox*>>();
-    //             QList<int> selectedOptionIds;
-    //             for (QCheckBox* checkBox : checkboxes) {
-    //                 if (checkBox->isChecked()) {
-    //                     selectedOptionIds.append(checkBox->property("optionId").toInt());
-    //                 }
-    //             }
-    //             dbManager->updateCheckboxQuestion(questionId, selectedOptionIds);
-    //         } else {
-    //             // Drop down or radio button
-    //             int selectedOptionId = comboBox->currentData().toInt();
-    //             dbManager->updateDropdownOrRadioButtonAnswer(questionId, selectedOptionId);
-    //         }
-    //     }
-    // }
+        int questionId = idItem->text().toInt();
+
+        // Check if this question was modified
+        if (!modifiedQuestionIds.contains(questionId))
+            continue;
+
+        // Get the question type
+        QTableWidgetItem* typeItem = tableWidget->item(row, 1);
+        if (!typeItem)
+            continue;
+
+        QString questionType = typeItem->text();
+
+        // Get the editor widget
+        QWidget* editorWidget = tableWidget->cellWidget(row, 3); // Answer column
+        if (!editorWidget)
+            continue;
+
+        if (questionType == "free response") {
+            QLineEdit* lineEdit = qobject_cast<QLineEdit*>(editorWidget);
+            if (lineEdit) {
+                QString answerText = lineEdit->text();
+                // Update the database
+                if (!dbManager->updateFreeResponseAnswer(questionId, answerText)) {
+                    qDebug() << "Failed to update free response answer for question" << questionId;
+                }
+            }
+        } else if (questionType == "drop down" || questionType == "radio buttons") {
+            QComboBox* comboBox = qobject_cast<QComboBox*>(editorWidget);
+            if (comboBox) {
+                int optionId = comboBox->currentData().toInt(); // Get the option id
+                if (optionId == -1) {
+                    // No selection made; you may choose to handle this case
+                    continue;
+                }
+                if (questionType == "radio buttons") {
+                    if (!dbManager->updateRadioButtonAnswer(questionId, optionId)) {
+                        qDebug() << "Failed to update radio button answer for question" << questionId;
+                    }
+                } else if (questionType == "drop down") {
+                    if (!dbManager->updateDropdownAnswer(questionId, optionId)) {
+                        qDebug() << "Failed to update dropdown answer for question" << questionId;
+                    }
+                }
+            }
+        } else if (questionType == "checkbox") {
+            CheckableComboBox* comboBox = qobject_cast<CheckableComboBox*>(editorWidget);
+            if (comboBox) {
+                QMenu* menu = comboBox->m_menu;
+                QList<int> selectedOptionIds;
+
+                for (QAction* action : menu->actions()) {
+                    QWidgetAction* widgetAction = qobject_cast<QWidgetAction*>(action);
+                    if (widgetAction) {
+                        QWidget* widget = widgetAction->defaultWidget();
+                        QCheckBox* checkBox = widget->findChild<QCheckBox*>();
+                        if (checkBox && checkBox->isChecked()) {
+                            int optionId = checkBox->property("optionId").toInt();
+                            selectedOptionIds.append(optionId);
+                        }
+                    }
+                }
+
+                if (!dbManager->updateCheckboxQuestion(questionId, selectedOptionIds)) {
+                    qDebug() << "Failed to update checkbox answer for question" << questionId;
+                }
+            }
+        }
+    }
+
+    // Clear the modifiedQuestionIds set after updating
+    modifiedQuestionIds.clear();
+
+    qDebug() << "Answers updated successfully";
 }
