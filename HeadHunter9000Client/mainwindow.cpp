@@ -1,6 +1,4 @@
-#include "askquestionsui.h"
 #include "mainwindow.h"
-#include "seeallquestionsui.h"
 #include "ui_mainwindow.h"
 #include <QDebug>
 #include <QVBoxLayout>
@@ -31,7 +29,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
 void MainWindow::cleanUpScraperConfigPage() {
-    qDebug() << "Ayo3";
+    delete scraperconfigurationui;
 }
 
 void MainWindow::cleanUpJobSearchCriteriaPage() {
@@ -72,12 +70,18 @@ MainWindow::~MainWindow() {
     delete dbManager;
 }
 
+void MainWindow::on_ScraperConfigBtn_clicked()
+{
+    scraperconfigurationui = new ScraperConfigurationUI(this);
+    ui->mainAreaContainer->layout()->addWidget(scraperconfigurationui);
+}
+
+
 void MainWindow::on_SeeAllQuestionsBtn_clicked()
 {
     seeallquestionsui = new SeeAllQuestionsUI(this, this->dbManager);
     ui->mainAreaContainer->layout()->addWidget(seeallquestionsui);
 }
-
 
 
 void MainWindow::on_AnswerQuestionsBtn_clicked()

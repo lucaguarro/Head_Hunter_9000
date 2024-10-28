@@ -6,6 +6,7 @@
 #include <QVBoxLayout>
 #include "askquestionsui.h"
 #include "databasemanager.h"
+#include "scraperconfigurationui.h"
 #include "seeallquestionsui.h"
 
 QT_BEGIN_NAMESPACE
@@ -25,11 +26,13 @@ public:
 private slots:
     void on_AnswerQuestionsBtn_clicked();
     void on_SeeAllQuestionsBtn_clicked();
+    void on_ScraperConfigBtn_clicked();
 
 private:
     Ui::MainWindow *ui;
     AskQuestionsUI* askquestionsui;
     SeeAllQuestionsUI* seeallquestionsui;
+    ScraperConfigurationUI* scraperconfigurationui;
 
     QPushButton* previousButton;
 
@@ -45,6 +48,7 @@ private:
     QVBoxLayout *setupScrollAreaAndSaveButton();
     void loadQuestions(QVBoxLayout *contentLayout);
     void addQuestionToPanel(QVBoxLayout *contentLayout, const QString &questionText, const QString &questionType, int questionId);
+
 };
 
 #endif // MAINWINDOW_H
