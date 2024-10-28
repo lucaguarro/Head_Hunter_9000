@@ -1,12 +1,13 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver import ChromeOptions
 import html2text
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 import urllib.parse
-import configparser
 import random
 import time
 import logging.config
@@ -36,12 +37,8 @@ logger = logging.getLogger(__name__)
 
 class Head_Hunter_9000:
 
-    def __init__(self, config_file_path):
-        config = configparser.ConfigParser()
-        config.read(config_file_path)
-
-        self.username = config['LOGIN']['email']
-        self.password = config['LOGIN']['password']
+    def __init__(self, config):
+        self.config = config
 
         self.redirect_url = utils.make_url(config['SEARCH_FILTERS'])
 
@@ -51,29 +48,35 @@ class Head_Hunter_9000:
 
         # Debugger detection
         self.debugger_port = 9222  # Change this if you use a different port
-        chromedriver_path = '/home/luca/Documents/Projects/Head_Hunter_9000/chromedriver-linux64/chromedriver'
+        chromedriver_path = config['SCRAPER']['chromedriver_filepath']
         
+        self.debugger_running = None
         if self.is_debugger_running():
             # Connect to existing Chrome session
             print("Debugger detected. Connecting to existing Chrome session...")
             opts.add_experimental_option("debuggerAddress", f"localhost:{self.debugger_port}")
-            self.logged_in = True  # Assume already logged in and on jobs page
         else:
             # Start a new Chrome instance
             print("No debugger detected. Starting a new Chrome session...")
-            self.logged_in = False
 
+        da.initialize_engine(config['DATABASE']['db_filepath'])
+        dm.initialize_session()
         self.driver = webdriver.Chrome(executable_path=chromedriver_path, options=opts)
 
     def is_debugger_running(self):
         """
         Check if Chrome debugger is running by trying to connect to the debugging port.
         """
-        try:
-            response = requests.get(f"http://localhost:{self.debugger_port}/json")
-            return response.status_code == 200
-        except requests.ConnectionError:
-            return False
+        if not self.debugger_running:
+            try:
+                response = requests.get(f"http://localhost:{self.debugger_port}/json")
+                self.debugger_running = True
+                return response.status_code == 200
+            except requests.ConnectionError:
+                self.debugger_running = False
+                return False
+        else:
+            return self.debugger_running
 
     def __del__(self):
         self.driver.close()
@@ -88,23 +91,24 @@ class Head_Hunter_9000:
         username_input = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_username_input.xpath)
         password_input = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_password_input.xpath)
 
-        utils.simulate_human_typing(username_input, self.username)
-        utils.simulate_human_typing(password_input, self.password)
+        utils.simulate_human_typing(username_input, self.config['LOGIN']['email'])
+        utils.simulate_human_typing(password_input, self.config['LOGIN']['password'])
 
         time.sleep(random.uniform(0.1, 0.5))
         submit_btn = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_submit_button.xpath)
         submit_btn.click()
         logger.debug("Logged into linkedin.")
 
-    def scroll_through_sidebar(self, jobapps_sidebar_xpath):
+
+    def scroll_through_sidebar(self, sidebar):
+        if self.is_debugger_running() and self.config.getboolean('DEBUGGER', 'skip_sidebar_scroll'): # skip this to save time during debugging
+            return
+        
         scroll_cnt = 0
-        sidebar = self.driver.find_element(By.XPATH, jobapps_sidebar_xpath.xpath)
-        if not self.is_debugger_running(): # skip this to save time during debugging
-            while scroll_cnt < 5:
-                self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;', sidebar)
-                scroll_cnt += 1
-                time.sleep(random.uniform(1, 3))
-        return sidebar
+        while scroll_cnt < 5:
+            self.driver.execute_script('arguments[0].scrollTop = arguments[0].scrollTop + arguments[0].offsetHeight;', sidebar)
+            scroll_cnt += 1
+            time.sleep(random.uniform(1, 3))
 
     def add_info_if_exists(self, job_dict, key, element, xpath_from_element):
         try:
@@ -259,6 +263,12 @@ class Head_Hunter_9000:
         job_info['extjobid'] = ext_job_id
 
         job_info['jobboardid'] = job_board
+
+        # default value which can be overwritten during question scraping process
+        not_requested_status = dm.get_document_requirement_status_id("Not requested nor required")
+        job_info['resumerequirementstatusid'] = not_requested_status
+        job_info['coverletterrequirementstatusid'] = not_requested_status
+
         return job_info
 
     def get_job_id(self, url):
@@ -272,19 +282,46 @@ class Head_Hunter_9000:
             print("Could not find job id.")
             return ''
 
-    def scrape_freeresponse_questions(self, freeresponse_question_containers):
+    def scrape_freeresponse_questions(self, freeresponse_question_containers, freeresponse_question_container_xpaths):
         questions = []
         for fr_q_c in freeresponse_question_containers:
-            question_prompt = fr_q_c.find_element(By.TAG_NAME, "label").get_attribute("innerText")
-            questions.append(question_prompt)
+            try:
+                # Try to find the label first
+                question_prompt = fr_q_c.find_element(By.TAG_NAME, "label").get_attribute("innerText")
+            except NoSuchElementException:
+                # If no label is found, check for "Screener Question"
+                try:
+                    # Navigate up the DOM and find the spans related to the screener question
+                    # First span (group title)
+                    group_title = fr_q_c.find_element(By.XPATH, freeresponse_question_container_xpaths.screener_question_title.xpath).get_attribute("innerText")
+                    
+                    # Second span (group subtitle)
+                    group_subtitle = fr_q_c.find_element(By.XPATH, freeresponse_question_container_xpaths.screener_question_subtitle.xpath).get_attribute("innerText")
+                    
+                    # Combine the title and subtitle as the question prompt
+                    question_prompt = f"{group_title}: {group_subtitle}"
+                except NoSuchElementException:
+                    # If the spans are not found either, continue with the next element
+                    continue
+
+            is_multiline = False
+            multiline_entity = fr_q_c.get_attribute("data-test-multiline-text-form-component")
+            if multiline_entity is not None:
+                is_multiline = True
+            
+            # Append the question prompt (either from label or screener question) to the list
+            questions.append((question_prompt, is_multiline))
 
         return questions
 
-    def scrape_dropdown_questions(self, dropdown_question_containers):
+    def scrape_dropdown_questions(self, dropdown_question_containers, dropdown_question_container_xpaths):
         questions_with_options = []
 
         for dd_q_c in dropdown_question_containers:
-            question_prompt = dd_q_c.find_element(By.XPATH, "./label/span[@aria-hidden='true']").text
+            try:
+                question_prompt = dd_q_c.find_element(By.XPATH, "./label/span[@aria-hidden='true']").text
+            except NoSuchElementException:
+                question_prompt = dd_q_c.find_element(By.XPATH, dropdown_question_container_xpaths.app_aware_question_title.xpath).get_attribute("innerText")
 
             select = dd_q_c.find_element(By.TAG_NAME, "select")
             options = select.find_elements(By.TAG_NAME, "option")
@@ -298,11 +335,12 @@ class Head_Hunter_9000:
                 value = option.get_attribute("value")
 
                 # Create a dictionary for each "option" element and add it to the list
-                option_dict = {
-                    "text": inner_text,
-                    "value": value
-                }
-                option_list.append(option_dict)
+                if inner_text != 'Select an option':
+                    option_dict = {
+                        "text": inner_text,
+                        "value": value
+                    }
+                    option_list.append(option_dict)
 
             questions_with_options.append((question_prompt, option_list))
 
@@ -336,12 +374,52 @@ class Head_Hunter_9000:
             questions_with_options.append((question_prompt, option_list))
         
         return questions_with_options
+    
+    def scrape_checkbox_questions(self, checkbox_question_containers, checkbox_question_container_xpaths):
+        questions_with_options = []
 
-    def fill_out_questions(self, freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers):
+        for cb_q_c in checkbox_question_containers:
+            try:
+                question_prompt = cb_q_c.find_element(By.XPATH, ".//span[@aria-hidden='true']").text
+            except NoSuchElementException:
+                question_prompt = cb_q_c.find_element(By.XPATH, checkbox_question_container_xpaths.app_aware_question_title.xpath).get_attribute("innerText")
+
+            input_containers = cb_q_c.find_elements(By.XPATH, "./div")
+
+            # List to store the dictionaries
+            option_list = []
+
+            for input_container in input_containers:
+                input = input_container.find_element(By.XPATH, "./input")
+                value = input.get_attribute('data-test-text-selectable-option__input')
+
+                inner_text = input_container.find_element(By.TAG_NAME, "label").text
+
+                option_dict = {
+                    "text": inner_text,
+                    "value": value
+                }
+                option_list.append(option_dict)
+
+            questions_with_options.append((question_prompt, option_list))
+        
+        return questions_with_options
+
+    def fill_out_questions(self, freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, checkbox_question_containers, freeresponse_question_container_xpaths):
         for fr_q in freeresponse_question_containers:
-            input_tag = fr_q.find_element(By.TAG_NAME, "input")
-            input_tag.clear()
-            input_tag.send_keys("1")
+            input_or_textarea = fr_q.find_element(By.XPATH, ".//input | .//textarea")
+            # input_tag = fr_q.find_element(By.TAG_NAME, "input")
+            input_or_textarea.clear()
+            input_or_textarea.send_keys("1")
+            typeahead_entity = fr_q.get_attribute("data-test-single-typeahead-entity-form-component")
+            if typeahead_entity is not None:
+                try:
+                    first_option = WebDriverWait(fr_q, 10).until(
+                        EC.presence_of_element_located((By.XPATH, freeresponse_question_container_xpaths.type_ahead_dropdown_first_option.xpath))
+                    )
+                except TimeoutException:
+                    print("Element was not found within the timeout period.")
+                first_option.click()
 
         for dd_q in dropdown_question_containers:
             select_el = dd_q.find_element(By.TAG_NAME, "select")
@@ -353,7 +431,71 @@ class Head_Hunter_9000:
             if radio_buttons:
                 radio_buttons[0].click()
 
-    def scrape_questions(self, job_info_container):
+        for cb_q in checkbox_question_containers:
+            checkboxes = cb_q.find_elements(By.XPATH, ".//label")
+            if checkboxes:
+                checkboxes[0].click()
+
+    def select_documents(self, document_upload_containers, document_upload_container_xpaths, job_info):
+
+        for container in document_upload_containers:
+            # Check if the container pertains to a cover letter or resume
+            label_el = container.find_element(By.XPATH, document_upload_container_xpaths.document_upload_label.xpath)
+            label_text = label_el.text.lower()
+
+            is_cover_letter = 'cover letter' in label_text
+            is_resume = 'resume' in label_text
+
+            required_class = "jobs-document-upload__title--is-required"
+            required = required_class in label_el.get_attribute("class")
+
+            # Log an error if the document type isn't recognized and continue
+            if not (is_cover_letter or is_resume):
+                logging.error("Document upload container is neither for a cover letter nor a resume.")
+                return False
+
+            # Try to find document options if the document is required or requested
+            if is_cover_letter or is_resume:
+                try:
+                    # Find document options within the container
+                    document_options = container.find_elements(By.XPATH, document_upload_container_xpaths.document_option.xpath)
+                    
+                    # Update job_info status based on requirement and availability
+                    if is_cover_letter:
+                        if required:
+                            job_info['coverletterrequirementstatusid'] = dm.get_document_requirement_status_id("Required")
+                        else:
+                            job_info['coverletterrequirementstatusid'] = dm.get_document_requirement_status_id("Requested but not required")
+                    elif is_resume:
+                        if required:
+                            job_info['resumerequirementstatusid'] = dm.get_document_requirement_status_id("Required")
+                        else:
+                            job_info['resumerequirementstatusid'] = dm.get_document_requirement_status_id("Requested but not required")
+
+                    # If no document options are available and a document is required, return False
+                    if not document_options and required:
+                        logging.error(f"No document options found, but a {'cover letter' if is_cover_letter else 'resume'} is required.")
+                        return False
+                    
+                    # Check if the first document option is already selected
+                    first_document_option = document_options[0]
+                    selected_class = "jobs-document-upload-redesign-card__container--selected"
+                    
+                    if selected_class in first_document_option.get_attribute("class"):
+                        logging.info(f"Document already selected for {'cover letter' if is_cover_letter else 'resume'}.")
+                    else:
+                        # If the document option is not selected, click to select it
+                        first_document_option.click()
+                        logging.info(f"Selected document for {'cover letter' if is_cover_letter else 'resume'}.")
+
+                except Exception as e:
+                    logging.error(f"Error occurred while selecting a document: {e}")
+                    return False
+
+        # Return True if any and all required documents had an option and were selected successfully
+        return True
+
+    def scrape_questions(self, job_info_container, job_info):
         # def get_rvw_btn():
         #     rvw_btn = hh_9000.driver.find_elements(By.XPATH, "//span[text()='Review']/ancestor::button")
         #     if rvw_btn:
@@ -366,36 +508,64 @@ class Head_Hunter_9000:
         easy_apply_button.click()
 
         jobapp_popup = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.xpath)
+        jobs_easy_apply_modal = 'jobs-easy-apply-modal' in jobapp_popup.get_attribute("class")
+        if not jobs_easy_apply_modal:
+            continue_btn = jobapp_popup.find_elements(By.XPATH, jobapp_popup_xpaths.continueapplying_button.xpath)
+            if continue_btn:
+                continue_btn = continue_btn[0]
+            
+            continue_btn.click()
+            jobapp_popup = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.xpath)
+
+
         def get_next_btn():
             nxt_btn = jobapp_popup.find_elements(By.XPATH, jobapp_popup_xpaths.nextpage_button.xpath)
             if nxt_btn:
                 return nxt_btn[0]
             
             return None
+        
+        def is_there_workexperience_form():
+            we_form = jobapp_popup.find_elements(By.XPATH, jobapp_popup_xpaths.workexperience_form.xpath)
+            if we_form:
+                return True
+            else:
+                return False
 
         fr_prompts = []
         dd_prompts_and_options = []
         rb_prompts_and_options = []
+        cb_prompts_and_options = []
 
         next_btn = True
         while next_btn:
             next_btn = get_next_btn()
-            question_form = jobapp_popup.find_element(By.XPATH, questionform_xpaths.xpath)
 
-            freeresponse_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.freeresponse_question_container.xpath)
-            dropdown_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.dropdown_question_container.xpath)
-            radiobutton_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.radiobutton_question_container.xpath)
+            if not is_there_workexperience_form():
+                question_form = jobapp_popup.find_element(By.XPATH, questionform_xpaths.xpath)
 
-            self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers)
+                freeresponse_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.freeresponse_question_container.xpath)
+                dropdown_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.dropdown_question_container.xpath)
+                radiobutton_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.radiobutton_question_container.xpath)
+                checkbox_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.checkbox_question_container.xpath)
 
-            fr_prompts.extend(self.scrape_freeresponse_questions(freeresponse_question_containers))
-            dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers))
-            rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
+                self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, checkbox_question_containers, questionform_xpaths.freeresponse_question_container)
+
+                fr_prompts.extend(self.scrape_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container))
+                dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container))
+                rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
+                cb_prompts_and_options.extend(self.scrape_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container))
+
+                document_upload_containers = question_form.find_elements(By.XPATH, questionform_xpaths.document_upload_container.xpath)
+                made_it_past_document_selection = self.select_documents(document_upload_containers, questionform_xpaths.document_upload_container, job_info)
+
+                if not made_it_past_document_selection:
+                    break
 
             if next_btn is not None:
                 next_btn.click()
 
-        all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options}
+        all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options, 'checkbox': cb_prompts_and_options}
 
         close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
         close_button.click()
@@ -409,7 +579,9 @@ class Head_Hunter_9000:
 
         questions_sa = []
         for fr_q in all_questions['freeresponse']:
-            question_sa = dm.create_question(fr_q, da.QuestionType.FREERESPONSE, None)
+            question_sa = dm.does_question_exist(fr_q[0], da.QuestionType.FREERESPONSE, None, fr_q[1])
+            if not question_sa:
+                question_sa = dm.create_question(fr_q[0], da.QuestionType.FREERESPONSE, None, fr_q[1])
             questions_sa.append(question_sa)
 
         for dd_q in all_questions['dropdown']:
@@ -420,31 +592,57 @@ class Head_Hunter_9000:
             question_sa = dm.create_question_and_options(rb_q, da.QuestionType.RADIOBUTTON)
             questions_sa.append(question_sa)
 
+        for cb_q in all_questions['checkbox']:
+            question_sa = dm.create_question_and_options(cb_q, da.QuestionType.CHECKBOX)
+            questions_sa.append(question_sa)
+
         dm.create_job(job_info, jobboard_sa, questions_sa)
         dm.commit()
+
+    def find_next_page_button(self, jobs_sidebar, curr_page_number, jobapps_sidebar_xpaths):
+        next_page_button_xpath = jobapps_sidebar_xpaths.next_page_button.xpath.format(pagenumber=curr_page_number)
+        try:
+            return jobs_sidebar.find_element(By.XPATH, next_page_button_xpath)
+        except NoSuchElementException:
+            return None
+        
+    def process_job(self):
+        if self.is_debugger_running() and self.config.getboolean('DEBUGGER', 'skip_question_scraping'): # skip this to save time during debugging
+            return
+        
+        try:
+            ext_job_id = self.get_job_id(self.driver.current_url)
+            job_info_container = self.driver.find_element(By.XPATH, xpaths.root_node.jobapps_main.jobinfo_container.xpath)
+            job_info = self.build_job_info(job_info_container, ext_job_id)
+            if not job_info['appsubmitted']: # can also do a check here to see if job already exists in local db TODO
+                all_questions = self.scrape_questions(job_info_container, job_info)
+                self.store_to_database(job_info, all_questions)
+        except RegexParseError as e:
+            logger.error(e)
 
     def scan_job_apps(self, apply_mode_on=False):
         time.sleep(random.uniform(1, 2))
         jobapps_sidebar_xpaths = xpaths.root_node.jobapps_main.jobapps_sidebar
-        jobs_sidebar = self.scroll_through_sidebar(jobapps_sidebar_xpaths)
-        job_listings = jobs_sidebar.find_elements(By.XPATH, jobapps_sidebar_xpaths.sidebar_listings.xpath)
+        jobs_sidebar = self.driver.find_element(By.XPATH, jobapps_sidebar_xpaths.xpath)
 
-        for i in range(len(job_listings)):
-            just_added = False
+        curr_page_number = 1
+        next_page_button = self.find_next_page_button(jobs_sidebar, curr_page_number, jobapps_sidebar_xpaths)
+
+        while(next_page_button):
+            next_page_button.click()
             time.sleep(random.uniform(1, 2))
-            link = job_listings[i].find_element(By.XPATH, jobapps_sidebar_xpaths.sidebar_listings.listing_link.xpath)
-            link.click()
-            time.sleep(random.uniform(1, 2))
+            self.scroll_through_sidebar(jobs_sidebar)
+            job_listings = jobs_sidebar.find_elements(By.XPATH, jobapps_sidebar_xpaths.sidebar_listings.xpath)
 
-            try:
-                ext_job_id = self.get_job_id(self.driver.current_url)
-                job_info_container = self.driver.find_element(By.XPATH, xpaths.root_node.jobapps_main.jobinfo_container.xpath)
-                job_info = self.build_job_info(job_info_container, ext_job_id)
-                if not job_info['appsubmitted']: # can also do a check here to see if job already exists in local db TODO
-                    all_questions = self.scrape_questions(job_info_container)
-                    self.store_to_database(job_info, all_questions)
-            except RegexParseError as e:
-                logger.error(e)
+            for i in range(len(job_listings)):
+                time.sleep(random.uniform(1, 2))
+                link = job_listings[i].find_element(By.XPATH, jobapps_sidebar_xpaths.sidebar_listings.listing_link.xpath)
+                link.click()
+                time.sleep(random.uniform(1, 2))
 
-            # close job pop-up window
+                self.process_job()
+
+            curr_page_number += 1
+            next_page_button = self.find_next_page_button(jobs_sidebar, curr_page_number, jobapps_sidebar_xpaths)
+
                 

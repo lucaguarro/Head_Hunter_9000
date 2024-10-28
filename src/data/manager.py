@@ -2,8 +2,12 @@ import data.architecture as da
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import func
 
-Session = sessionmaker(bind=da.engine)
-session = Session()
+session = None
+
+def initialize_session():
+    global session
+    Session = sessionmaker(bind=da.engine)
+    session = Session()
 
 def create_or_get_job_board(jobboardname):
     jobboard = session.query(da.JobBoard).filter_by(name=jobboardname).first()
@@ -67,11 +71,12 @@ def make_optionset(options_sa, options_hash):
 
     return new_optionset
 
-def does_question_exist(question_text, question_type, optionset):
+def does_question_exist(question_text, question_type, optionset = None, ismultiline = None):
 
     if question_type == da.QuestionType.FREERESPONSE:
         existing_question = session.query(da.FreeResponseQuestion).filter(
             da.FreeResponseQuestion.question == question_text,
+            da.FreeResponseQuestion.ismultiline == ismultiline
         )
     elif question_type == da.QuestionType.RADIOBUTTON:
         existing_question = session.query(da.RadioButtonQuestion).filter(
@@ -83,12 +88,17 @@ def does_question_exist(question_text, question_type, optionset):
             da.DropDownQuestion.question == question_text,
             da.DropDownQuestion.optionset == optionset
         )
+    elif question_type == da.QuestionType.CHECKBOX:
+        existing_question = session.query(da.CheckBoxQuestion).filter(
+            da.DropDownQuestion.question == question_text,
+            da.DropDownQuestion.optionset == optionset
+        )
 
     return existing_question.first()
 
-def create_question_and_options(rb_prompt_and_options, question_type):
-    prompt = rb_prompt_and_options[0]
-    options = rb_prompt_and_options[1]
+def create_question_and_options(prompt_and_options, question_type):
+    prompt = prompt_and_options[0]
+    options = prompt_and_options[1]
 
     options_sa, was_option_created = insert_options(options)
     if was_option_created:
@@ -118,10 +128,11 @@ def create_question_and_options(rb_prompt_and_options, question_type):
     return question_sa
 
 
-def create_question(question_text, question_type, optionset = None):
+def create_question(question_text, question_type, optionset = None, ismultiline = None):
     if question_type == da.QuestionType.FREERESPONSE:
         new_question = da.FreeResponseQuestion(
-            question = question_text
+            question = question_text,
+            ismultiline = ismultiline
         )
     elif question_type == da.QuestionType.RADIOBUTTON:
         new_question = da.RadioButtonQuestion(
@@ -133,9 +144,21 @@ def create_question(question_text, question_type, optionset = None):
             question = question_text,
             optionset = optionset
         )
+    elif question_type == da.QuestionType.CHECKBOX:
+        new_question = da.CheckBoxQuestion(
+            question = question_text,
+            optionset = optionset
+        )
 
     return new_question
 
+def get_document_requirement_status_id(status_name):
+    """
+    Retrieve the id of the document requirement status given the status name.
+    """
+    status = session.query(da.DocumentRequirementStatus).filter_by(status=status_name).first()
+    return status.id if status else None
+    
 def flush():
     session.flush()
 

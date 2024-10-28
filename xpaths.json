@@ -22,6 +22,9 @@
                     "jobapps_sidebar": {
                         "xpath": "//div[@class='scaffold-layout__list ']/div[contains(@class, 'jobs-search-results-list')]",
                         "children": {
+                            "next_page_button": {
+                                "xpath": "//ul[contains(@class, 'artdeco-pagination__pages')]/li/button[@aria-label='Page {pagenumber}']"
+                            },
                             "sidebar_listings": {
                                 "xpath": "//div[contains(@class, 'job-card-container') and contains(@class, 'job-card-list')]",
                                 "children": {
@@ -60,7 +63,7 @@
                                 }
                             },
                             "description": {
-                                "xpath": "//div[@class='job-details-module__content']"
+                                "xpath": "//article"
                             },
                             "easyapply_button": {
                                 "xpath": "//button[contains(@class, 'jobs-apply-button')]"
@@ -68,22 +71,66 @@
                         }
                     },
                     "jobapp_popup": {
-                        "xpath": "//div[contains(@class, 'artdeco-modal-overlay')]/div[contains(@class, 'artdeco-modal') and contains(@class, 'jobs-easy-apply-modal')]",
+                        "xpath": "//div[contains(@class, 'artdeco-modal-overlay')]/div[contains(@class, 'artdeco-modal')]",
                         "children": {
+                            "continueapplying_button": {
+                                "xpath": ".//span[text()='Continue applying']/ancestor::button"
+                            },
                             "nextpage_button": {
                                 "xpath": ".//span[text()='Next']/ancestor::button"
                             },
+                            "workexperience_form": {
+                                "xpath": ".//div[contains(@class, 'jobs-easy-apply-repeatable-groupings__groupings')]"
+                            },
                             "question_form": {
-                                "xpath": ".//div[@class='pb4']",
+                                "xpath": ".//div[@class='ph5']",
                                 "children": {
                                     "freeresponse_question_container": {
-                                        "xpath": "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component]"
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-single-line-text-form-component or @data-test-single-typeahead-entity-form-component or @data-test-multiline-text-form-component]",
+                                        "children": {
+                                            "screener_question_title": {
+                                                "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-modal')]//span[contains(@class, 'jobs-easy-apply-form-section__group-title')]"
+                                            },
+                                            "screener_question_subtitle": {
+                                                "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-modal')]//span[contains(@class, 'jobs-easy-apply-form-section__group-subtitle')]"
+                                            },
+                                            "type_ahead_dropdown_first_option": {
+                                                "xpath": "(.//div[@class='search-typeahead-v2__hit search-typeahead-v2__hit--autocomplete'])[1]"
+                                            }
+                                        }
                                     },
                                     "dropdown_question_container": {
-                                        "xpath": "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-text-entity-list-form-component]"
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//div[@data-test-text-entity-list-form-component]",
+                                        "children": {
+                                            "app_aware_question_title": {
+                                                "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-modal')]//span[contains(@class, 'jobs-easy-apply-form-section__group-title')]"
+                                            }
+                                        }
                                     },
                                     "radiobutton_question_container": {
-                                        "xpath": "./div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]"
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]"
+                                    },
+                                    "checkbox_question_container": {
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-checkbox-form-component]",
+                                        "children": {
+                                            "app_aware_question_title": {
+                                                "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-modal')]//span[contains(@class, 'jobs-easy-apply-form-section__group-title')]"
+                                            }
+                                        }
+                                    },
+                                    "document_upload_container": {
+                                        "xpath": ".//div[contains(@class, 'js-jobs-document-upload__container')]/ancestor::div[contains(@class, 'pb4')]",
+                                        "children": {
+                                            "document_upload_label": {
+                                                "xpath": ".//span[contains(@class, 't-14')]"
+                                            },
+                                            "document_upload_button_span": {
+                                                "xpath": ".//label[contains(@class, 'jobs-document-upload__upload-button')]//span[@role='button']"
+                                            },
+                                            "document_option": {
+                                                "xpath": ".//div[contains(@class, 'ui-attachment')]"
+                                            }
+                                        }
                                     }
                                 }
                             },
