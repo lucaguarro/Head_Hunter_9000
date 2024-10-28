@@ -33,7 +33,7 @@ QSqlQuery DatabaseManager::fetchQuestions(bool excludeAnswered) {
     if (excludeAnswered) {
         queryString += R"(
             WHERE (
-                frq.answer IS NULL
+                NULLIF(frq.answer, '') IS NULL
                 AND rbq.answerasoptionid IS NULL
                 AND ddq.answerasoptionid IS NULL
                 AND NOT EXISTS (
