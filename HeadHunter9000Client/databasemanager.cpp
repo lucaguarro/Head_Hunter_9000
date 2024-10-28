@@ -119,9 +119,14 @@ bool DatabaseManager::updateFreeResponseAnswer(int questionId, const QString &an
 
 bool DatabaseManager::updateRadioButtonAnswer(int questionId, int optionId) {
     QSqlQuery query;
-    query.prepare("UPDATE radiobuttonquestion SET answerasoptionid = :optionid WHERE id = :questionid");
-    query.bindValue(":optionid", optionId);
-    query.bindValue(":questionid", questionId);
+    if (optionId == -1) {
+        query.prepare("UPDATE radiobuttonquestion SET answerasoptionid = NULL WHERE id = :questionid");
+        query.bindValue(":questionid", questionId);
+    } else {
+        query.prepare("UPDATE radiobuttonquestion SET answerasoptionid = :optionid WHERE id = :questionid");
+        query.bindValue(":optionid", optionId);
+        query.bindValue(":questionid", questionId);
+    }
 
     if (!query.exec()) {
         qDebug() << "Error updating radio button question:" << query.lastError();
@@ -131,16 +136,17 @@ bool DatabaseManager::updateRadioButtonAnswer(int questionId, int optionId) {
     return true;
 }
 
-bool DatabaseManager::updateDropdownAnswer(int questionId, int optionId) {
-    if (optionId == -1){
-        qDebug() << "question " << questionId << "ignored";
-        return true;
-    }
 
+bool DatabaseManager::updateDropdownAnswer(int questionId, int optionId) {
     QSqlQuery query;
-    query.prepare("UPDATE dropdownquestion SET answerasoptionid = :optionid WHERE id = :questionid");
-    query.bindValue(":optionid", optionId);
-    query.bindValue(":questionid", questionId);
+    if (optionId == -1) {
+        query.prepare("UPDATE dropdownquestion SET answerasoptionid = NULL WHERE id = :questionid");
+        query.bindValue(":questionid", questionId);
+    } else {
+        query.prepare("UPDATE dropdownquestion SET answerasoptionid = :optionid WHERE id = :questionid");
+        query.bindValue(":optionid", optionId);
+        query.bindValue(":questionid", questionId);
+    }
 
     if (!query.exec()) {
         qDebug() << "Error updating dropdown question:" << query.lastError();
@@ -149,6 +155,7 @@ bool DatabaseManager::updateDropdownAnswer(int questionId, int optionId) {
 
     return true;
 }
+
 
 bool DatabaseManager::updateCheckboxQuestion(int questionId, const QList<int> &selectedOptionIds) {
     QSqlQuery query;

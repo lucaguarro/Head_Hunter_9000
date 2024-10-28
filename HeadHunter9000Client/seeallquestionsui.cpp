@@ -276,10 +276,6 @@ void SeeAllQuestionsUI::updateAnswers()
             QComboBox* comboBox = qobject_cast<QComboBox*>(editorWidget);
             if (comboBox) {
                 int optionId = comboBox->currentData().toInt(); // Get the option id
-                if (optionId == -1) {
-                    // No selection made; you may choose to handle this case
-                    continue;
-                }
                 if (questionType == "radio buttons") {
                     if (!dbManager->updateRadioButtonAnswer(questionId, optionId)) {
                         qDebug() << "Failed to update radio button answer for question" << questionId;
