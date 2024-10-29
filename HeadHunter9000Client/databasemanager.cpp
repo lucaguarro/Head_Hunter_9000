@@ -1,9 +1,20 @@
 #include "databasemanager.h"
+#include <QSettings>
 #include <QDebug>
 #include <QSqlError>
 
-DatabaseManager::DatabaseManager(const QString &databasePath)
-    : databasePath(databasePath) {}
+DatabaseManager::DatabaseManager(QSettings* settings)
+    : settings(settings)
+{
+    // databasePath = settings->value("DATABASE/db_filepath").toString();
+    // connectToDatabase();
+    setDatabasePath();
+}
+
+void DatabaseManager::setDatabasePath() {
+    databasePath =  settings->value("DATABASE/db_filepath").toString();
+    connectToDatabase(); // Reconnect to the database with the new path
+}
 
 bool DatabaseManager::connectToDatabase() {
     db = QSqlDatabase::addDatabase("QSQLITE");

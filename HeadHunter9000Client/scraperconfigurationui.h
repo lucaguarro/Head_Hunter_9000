@@ -17,14 +17,18 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QCheckBox>
+#include <QSettings>
 
 class ScraperConfigurationUI : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit ScraperConfigurationUI(QWidget *parent = nullptr);
+    explicit ScraperConfigurationUI(QWidget *parent, QSettings *settings);
     ~ScraperConfigurationUI();
+
+signals:
+    void databasePathChanged();
 
 private slots:
     void saveConfig();

@@ -33,6 +33,7 @@ private:
     AskQuestionsUI* askquestionsui;
     SeeAllQuestionsUI* seeallquestionsui;
     ScraperConfigurationUI* scraperconfigurationui;
+    QSettings* settings;
 
     QPushButton* previousButton;
 
@@ -49,6 +50,7 @@ private:
     void loadQuestions(QVBoxLayout *contentLayout);
     void addQuestionToPanel(QVBoxLayout *contentLayout, const QString &questionText, const QString &questionType, int questionId);
 
+    void onDatabasePathChanged();
 };
 
 #endif // MAINWINDOW_H

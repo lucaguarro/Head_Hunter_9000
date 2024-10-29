@@ -4,17 +4,15 @@
 #include <QFile>
 #include <QCryptographicHash>
 
-ScraperConfigurationUI::ScraperConfigurationUI(QWidget *parent)
+ScraperConfigurationUI::ScraperConfigurationUI(QWidget *parent, QSettings *settings)
     : QWidget(parent)
+    , settings(settings)
 {
     // Determine the configuration file path
     configFilePath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config.ini";
 
     // Ensure the directory exists
     QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
-
-    // Initialize QSettings with the config file path
-    settings = new QSettings(configFilePath, QSettings::IniFormat, this);
 
     // Create the main layout
     mainLayout = new QVBoxLayout(this);
@@ -38,9 +36,7 @@ ScraperConfigurationUI::ScraperConfigurationUI(QWidget *parent)
 }
 
 ScraperConfigurationUI::~ScraperConfigurationUI()
-{
-    delete settings;
-}
+{}
 
 void ScraperConfigurationUI::createLoginGroup()
 {
@@ -297,6 +293,7 @@ void ScraperConfigurationUI::saveConfig()
 
     // Save DATABASE settings
     settings->setValue("DATABASE/db_filepath", dbFilePathLineEdit->text());
+    emit databasePathChanged();
 
     // Ensure settings are written to file
     settings->sync();

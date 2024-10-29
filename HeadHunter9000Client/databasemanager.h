@@ -4,10 +4,12 @@
 #include <QString>
 #include <QSqlDatabase>
 #include <QSqlQuery>
+#include <QSettings>
 
 class DatabaseManager {
 public:
-    DatabaseManager(const QString &databasePath);
+    explicit DatabaseManager(QSettings* settings);
+
 
     bool connectToDatabase();
     QList<QPair<QString, int>> fetchOptionsForQuestion(const QString &questionType, int questionId);
@@ -19,9 +21,11 @@ public:
     bool updateCheckboxQuestion(int questionId, const QList<int> &selectedOptionIds);
     QString fetchAnswerForQuestion(int questionId, const QString &questionType);
     QSqlQuery fetchQuestions(bool excludeAnswered);
+    void setDatabasePath();
 private:
     QString databasePath;
     QSqlDatabase db;
+    QSettings* settings;
 };
 
 #endif // DATABASEMANAGER_H

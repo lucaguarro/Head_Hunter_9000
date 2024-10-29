@@ -10,9 +10,17 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // Initialize the database manager with the path to the SQLite file
-    // dbManager = new DatabaseManager("/home/luca/Documents/Projects/Head_Hunter_9000/example.db");
-    dbManager = new DatabaseManager("/home/luca/Documents/Projects/Head_Hunter_9000/DatabaseStorage/jobappstest.db");
+    // Determine the configuration file path
+    QString configFilePath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config.ini";
+
+    // Ensure the directory exists
+    QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+
+    // Initialize QSettings with the config file path
+    settings = new QSettings(configFilePath, QSettings::IniFormat, this);
+
+    // Initialize the database manager with the settings instance
+    dbManager = new DatabaseManager(settings);
 
     // SidebarMenu is at index 0, scrollArea is at index 1 in the splitter
     ui->splitter->setStretchFactor(0, 0);  // SidebarMenu gets no stretch (fixed size)
@@ -72,8 +80,13 @@ MainWindow::~MainWindow() {
 
 void MainWindow::on_ScraperConfigBtn_clicked()
 {
-    scraperconfigurationui = new ScraperConfigurationUI(this);
+    scraperconfigurationui = new ScraperConfigurationUI(this, settings);
+    connect(scraperconfigurationui, &ScraperConfigurationUI::databasePathChanged, this, &MainWindow::onDatabasePathChanged);
     ui->mainAreaContainer->layout()->addWidget(scraperconfigurationui);
+}
+
+void MainWindow::onDatabasePathChanged() {
+    dbManager->setDatabasePath();
 }
 
 
