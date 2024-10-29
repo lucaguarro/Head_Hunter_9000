@@ -314,8 +314,21 @@ void ScraperConfigurationUI::browseChromedriverPath()
 
 void ScraperConfigurationUI::browseDatabasePath()
 {
-    QString filePath = QFileDialog::getSaveFileName(this, tr("Select Database File"), QDir::homePath(), tr("Database Files (*.db)"));
-    if (!filePath.isEmpty()) {
+    QFileDialog dialog(this);
+    dialog.setWindowTitle(tr("Select or Create Database File"));
+    dialog.setDirectory(QDir::homePath());
+    dialog.setNameFilter(tr("Database Files (*.db)"));
+    dialog.setAcceptMode(QFileDialog::AcceptSave);
+    dialog.setFileMode(QFileDialog::AnyFile);
+    dialog.setOption(QFileDialog::DontConfirmOverwrite, true);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QString filePath = dialog.selectedFiles().first();
+        // Ensure the file has a '.db' extension
+        if (!filePath.endsWith(".db", Qt::CaseInsensitive)) {
+            filePath += ".db";
+        }
         dbFilePathLineEdit->setText(QDir::toNativeSeparators(filePath));
     }
 }
+
