@@ -1,7 +1,15 @@
 import argparse
 import scraper.linkedin as li
 import configparser
+import signal
 import sys
+
+def signal_handler(sig, frame):
+    print('Python script received termination signal. Exiting gracefully.')
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C as well
 
 def main(config_path):
     config = configparser.ConfigParser()

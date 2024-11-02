@@ -93,34 +93,58 @@ void MainWindow::onDatabasePathChanged() {
 }
 
 void MainWindow::on_ExecuteBtn_clicked() {
-    QString scriptPath = "/home/luca/Documents/Projects/Head_Hunter_9000/run_scraper.sh";
-    QString configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config.ini";
+    if (!isProcessRunning) {
+        // Start the process
+        QString scriptPath = "/home/luca/Documents/Projects/Head_Hunter_9000/run_scraper.sh";
+        QString configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config.ini";
 
-    QThread* thread = new QThread;
-    // Pass both the shell script and the config path as arguments
-    QStringList arguments;
-    arguments << scriptPath << configPath;
-    ProcessWorker* worker = new ProcessWorker("/bin/bash", QStringList() << scriptPath << configPath);
+        thread = new QThread;
+        worker = new ProcessWorker("/bin/bash", QStringList() << scriptPath << configPath);
 
-    worker->moveToThread(thread);
+        worker->moveToThread(thread);
 
-    connect(thread, &QThread::started, worker, &ProcessWorker::execute);
-    connect(worker, &ProcessWorker::processFinished, this, [](const QString& output, const QString& errorOutput) {
-        qDebug() << "Script Output:" << output;
-        if (!errorOutput.isEmpty()) {
-            qDebug() << "Script Error:" << errorOutput;
+        connect(thread, &QThread::started, worker, &ProcessWorker::execute);
+        connect(worker, &ProcessWorker::processFinished, this, [this](const QString& output, const QString& errorOutput) {
+            qDebug() << "Script Output:" << output;
+            if (!errorOutput.isEmpty()) {
+                qDebug() << "Script Error:" << errorOutput;
+            }
+            // Process finished, reset state
+            isProcessRunning = false;
+            ui->ExecuteBtn->setText("Execute");
+        });
+        connect(worker, &ProcessWorker::processError, this, [this](const QString& errorMessage) {
+            qDebug() << errorMessage;
+            // Process error, reset state
+            isProcessRunning = false;
+            ui->ExecuteBtn->setText("Execute");
+        });
+
+        connect(worker, &ProcessWorker::processFinished, thread, &QThread::quit);
+        connect(worker, &ProcessWorker::processFinished, worker, &ProcessWorker::deleteLater);
+        connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+
+        // Reset worker and thread pointers when thread finishes
+        connect(thread, &QThread::finished, this, [this]() {
+            worker = nullptr;
+            thread = nullptr;
+        });
+
+        isProcessRunning = true;
+        ui->ExecuteBtn->setText("Stop Execution");
+
+        thread->start();
+
+    } else {
+        // Stop the process
+        if (worker) {
+            // Emit signal to stop the process
+            QMetaObject::invokeMethod(worker, "stop", Qt::QueuedConnection);
         }
-    });
-    connect(worker, &ProcessWorker::processError, this, [](const QString& errorMessage) {
-        qDebug() << errorMessage;
-    });
-
-    connect(worker, &ProcessWorker::processFinished, thread, &QThread::quit);
-    connect(worker, &ProcessWorker::processFinished, worker, &ProcessWorker::deleteLater);
-    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
-
-    thread->start();
+        // The state will be reset when the process finishes
+    }
 }
+
 
 void MainWindow::on_SeeAllQuestionsBtn_clicked()
 {

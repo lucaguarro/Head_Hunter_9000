@@ -8,6 +8,7 @@
 #include "databasemanager.h"
 #include "scraperconfigurationui.h"
 #include "seeallquestionsui.h"
+#include "processworker.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -41,6 +42,9 @@ private:
     // Member for managing the database connection
     DatabaseManager *dbManager;
 
+    bool isProcessRunning = false;
+    ProcessWorker* worker = nullptr;
+    QThread* thread = nullptr;
 
     // Function to load and display questions from the database
     void saveData();
