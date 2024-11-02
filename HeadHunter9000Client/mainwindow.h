@@ -27,6 +27,7 @@ private slots:
     void on_AnswerQuestionsBtn_clicked();
     void on_SeeAllQuestionsBtn_clicked();
     void on_ScraperConfigBtn_clicked();
+    void on_ExecuteBtn_clicked();
 
 private:
     Ui::MainWindow *ui;

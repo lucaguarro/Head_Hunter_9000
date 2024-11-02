@@ -1,9 +1,15 @@
+import argparse
 import scraper.linkedin as li
 import configparser
+import sys
 
-if __name__ == '__main__':
+def main(config_path):
     config = configparser.ConfigParser()
-    config.read('config.ini')
+    read_files = config.read(config_path)
+    if not read_files:
+        print(f"Error: Could not read config file at {config_path}")
+        sys.exit(1)
+
     hh_9000 = li.Head_Hunter_9000(config)
 
     if hh_9000.is_debugger_running():
@@ -16,3 +22,14 @@ if __name__ == '__main__':
     else:
         hh_9000.login()
         hh_9000.scan_job_apps(False)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Head Hunter 9000 Script')
+    parser.add_argument(
+        '-c', '--config',
+        type=str,
+        required=True,
+        help='Path to the configuration .ini file'
+    )
+    args = parser.parse_args()
+    main(args.config)

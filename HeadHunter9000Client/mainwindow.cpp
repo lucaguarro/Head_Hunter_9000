@@ -1,6 +1,9 @@
 #include "mainwindow.h"
+#include "processworker.h"
 #include "ui_mainwindow.h"
 #include <QDebug>
+#include <QProcess>
+#include <QThread>
 #include <QVBoxLayout>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -89,6 +92,35 @@ void MainWindow::onDatabasePathChanged() {
     dbManager->setDatabasePath();
 }
 
+void MainWindow::on_ExecuteBtn_clicked() {
+    QString scriptPath = "/home/luca/Documents/Projects/Head_Hunter_9000/run_scraper.sh";
+    QString configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config.ini";
+
+    QThread* thread = new QThread;
+    // Pass both the shell script and the config path as arguments
+    QStringList arguments;
+    arguments << scriptPath << configPath;
+    ProcessWorker* worker = new ProcessWorker("/bin/bash", QStringList() << scriptPath << configPath);
+
+    worker->moveToThread(thread);
+
+    connect(thread, &QThread::started, worker, &ProcessWorker::execute);
+    connect(worker, &ProcessWorker::processFinished, this, [](const QString& output, const QString& errorOutput) {
+        qDebug() << "Script Output:" << output;
+        if (!errorOutput.isEmpty()) {
+            qDebug() << "Script Error:" << errorOutput;
+        }
+    });
+    connect(worker, &ProcessWorker::processError, this, [](const QString& errorMessage) {
+        qDebug() << errorMessage;
+    });
+
+    connect(worker, &ProcessWorker::processFinished, thread, &QThread::quit);
+    connect(worker, &ProcessWorker::processFinished, worker, &ProcessWorker::deleteLater);
+    connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+
+    thread->start();
+}
 
 void MainWindow::on_SeeAllQuestionsBtn_clicked()
 {
