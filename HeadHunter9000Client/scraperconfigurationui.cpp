@@ -47,7 +47,7 @@ void ScraperConfigurationUI::createLoginGroup()
     layout->addRow(tr("Email:"), emailLineEdit);
 
     passwordLineEdit = new QLineEdit(loginGroup);
-    passwordLineEdit->setEchoMode(QLineEdit::Password);
+    // passwordLineEdit->setEchoMode(QLineEdit::Password);
     layout->addRow(tr("Password:"), passwordLineEdit);
 
     loginGroup->setLayout(layout);
@@ -246,9 +246,12 @@ void ScraperConfigurationUI::saveConfig()
     settings->setValue("LOGIN/email", emailLineEdit->text());
 
     // Encrypt the password (simple base64 encoding; consider stronger encryption in production)
-    QByteArray passwordBytes = passwordLineEdit->text().toUtf8();
-    QByteArray encryptedPassword = passwordBytes.toBase64();
-    settings->setValue("LOGIN/password", encryptedPassword);
+    QString password = passwordLineEdit->text();  // Get the password as QString
+    QByteArray passwordBytes = password.toUtf8(); // Convert QString to QByteArray
+    QByteArray encryptedPassword = passwordBytes.toBase64(); // Base64 encode the password
+    QString encryptedPasswordStr = QString::fromUtf8(encryptedPassword); // Convert QByteArray to QString
+
+    settings->setValue("LOGIN/password", encryptedPasswordStr); // Save as plain string
 
     // Save SCRAPER settings
     settings->setValue("SCRAPER/chromedriver_filepath", chromedriverPathLineEdit->text());
