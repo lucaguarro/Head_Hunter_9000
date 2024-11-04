@@ -38,8 +38,9 @@ logger = logging.getLogger(__name__)
 
 class Head_Hunter_9000:
 
-    def __init__(self, config):
+    def __init__(self, config, apply_mode):
         self.config = config
+        self.apply_mode = apply_mode
 
         self.redirect_url = utils.make_url(config['SEARCH_FILTERS'])
 

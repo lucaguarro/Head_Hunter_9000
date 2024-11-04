@@ -56,6 +56,7 @@ private:
     void addQuestionToPanel(QVBoxLayout *contentLayout, const QString &questionText, const QString &questionType, int questionId);
 
     void onDatabasePathChanged();
+    void setExecutionStateUI();
 };
 
 #endif // MAINWINDOW_H

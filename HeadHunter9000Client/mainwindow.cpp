@@ -92,6 +92,16 @@ void MainWindow::onDatabasePathChanged() {
     dbManager->setDatabasePath();
 }
 
+void MainWindow::setExecutionStateUI() {
+    if (isProcessRunning){
+        ui->ExecuteBtn->setText("Stop Execution");
+        ui->applyModeCheckbox->setDisabled(true);
+    } else {
+        ui->ExecuteBtn->setText("Execute");
+        ui->applyModeCheckbox->setDisabled(false);
+    }
+}
+
 void MainWindow::on_ExecuteBtn_clicked() {
     if (!isProcessRunning) {
         // Start the process
@@ -99,7 +109,7 @@ void MainWindow::on_ExecuteBtn_clicked() {
         QString configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config.ini";
 
         thread = new QThread;
-        worker = new ProcessWorker("/bin/bash", QStringList() << scriptPath << configPath);
+        worker = new ProcessWorker("/bin/bash", QStringList() << scriptPath << configPath << QString::number(ui->applyModeCheckbox->isChecked()));
 
         worker->moveToThread(thread);
 
@@ -111,13 +121,14 @@ void MainWindow::on_ExecuteBtn_clicked() {
             }
             // Process finished, reset state
             isProcessRunning = false;
-            ui->ExecuteBtn->setText("Execute");
+            setExecutionStateUI();
+
         });
         connect(worker, &ProcessWorker::processError, this, [this](const QString& errorMessage) {
             qDebug() << errorMessage;
             // Process error, reset state
             isProcessRunning = false;
-            ui->ExecuteBtn->setText("Execute");
+            setExecutionStateUI();
         });
 
         connect(worker, &ProcessWorker::processFinished, thread, &QThread::quit);
@@ -131,7 +142,7 @@ void MainWindow::on_ExecuteBtn_clicked() {
         });
 
         isProcessRunning = true;
-        ui->ExecuteBtn->setText("Stop Execution");
+        setExecutionStateUI();
 
         thread->start();
 

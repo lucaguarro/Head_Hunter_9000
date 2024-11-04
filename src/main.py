@@ -11,14 +11,14 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGTERM, signal_handler)
 signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C as well
 
-def main(config_path):
+def main(config_path, apply_mode):
     config = configparser.ConfigParser()
     read_files = config.read(config_path)
     if not read_files:
         print(f"Error: Could not read config file at {config_path}")
         sys.exit(1)
 
-    hh_9000 = li.Head_Hunter_9000(config)
+    hh_9000 = li.Head_Hunter_9000(config, apply_mode)
 
     if hh_9000.is_debugger_running():
         debugger_config = config['DEBUGGER']
@@ -39,5 +39,12 @@ if __name__ == '__main__':
         required=True,
         help='Path to the configuration .ini file'
     )
+    parser.add_argument(
+        '-a', '--applymode',
+        type=int,
+        choices=[0, 1],
+        required=True,
+        help='Apply to jobs (1) or ONLY scrape questions (0)'
+    )
     args = parser.parse_args()
-    main(args.config)
+    main(args.config, args.applymode)
