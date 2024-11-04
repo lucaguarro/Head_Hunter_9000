@@ -1,10 +1,24 @@
+import argparse
 import scraper.linkedin as li
 import configparser
+import signal
+import sys
 
-if __name__ == '__main__':
+def signal_handler(sig, frame):
+    print('Python script received termination signal. Exiting gracefully.')
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, signal_handler)
+signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C as well
+
+def main(config_path, apply_mode):
     config = configparser.ConfigParser()
-    config.read('config.ini')
-    hh_9000 = li.Head_Hunter_9000(config)
+    read_files = config.read(config_path)
+    if not read_files:
+        print(f"Error: Could not read config file at {config_path}")
+        sys.exit(1)
+
+    hh_9000 = li.Head_Hunter_9000(config, apply_mode)
 
     if hh_9000.is_debugger_running():
         debugger_config = config['DEBUGGER']
@@ -16,3 +30,21 @@ if __name__ == '__main__':
     else:
         hh_9000.login()
         hh_9000.scan_job_apps(False)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Head Hunter 9000 Script')
+    parser.add_argument(
+        '-c', '--config',
+        type=str,
+        required=True,
+        help='Path to the configuration .ini file'
+    )
+    parser.add_argument(
+        '-a', '--applymode',
+        type=int,
+        choices=[0, 1],
+        required=True,
+        help='Apply to jobs (1) or ONLY scrape questions (0)'
+    )
+    args = parser.parse_args()
+    main(args.config, args.applymode)

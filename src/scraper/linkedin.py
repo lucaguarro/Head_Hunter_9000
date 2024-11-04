@@ -18,6 +18,7 @@ logging.config.dictConfig({
 })
 import logging
 import requests
+import base64
 
 import scraper.xpaths as xpaths
 import re
@@ -37,8 +38,9 @@ logger = logging.getLogger(__name__)
 
 class Head_Hunter_9000:
 
-    def __init__(self, config):
+    def __init__(self, config, apply_mode):
         self.config = config
+        self.apply_mode = apply_mode
 
         self.redirect_url = utils.make_url(config['SEARCH_FILTERS'])
 
@@ -91,8 +93,11 @@ class Head_Hunter_9000:
         username_input = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_username_input.xpath)
         password_input = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_password_input.xpath)
 
+        password = base64.b64decode(self.config['LOGIN']['password'])
+        decoded_password = password.decode('utf-8')
+
         utils.simulate_human_typing(username_input, self.config['LOGIN']['email'])
-        utils.simulate_human_typing(password_input, self.config['LOGIN']['password'])
+        utils.simulate_human_typing(password_input, decoded_password)
 
         time.sleep(random.uniform(0.1, 0.5))
         submit_btn = self.driver.find_element(By.CSS_SELECTOR, login_page_xpaths.login_submit_button.xpath)

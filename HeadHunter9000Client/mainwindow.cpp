@@ -1,8 +1,9 @@
-#include "askquestionsui.h"
 #include "mainwindow.h"
-#include "seeallquestionsui.h"
+#include "processworker.h"
 #include "ui_mainwindow.h"
 #include <QDebug>
+#include <QProcess>
+#include <QThread>
 #include <QVBoxLayout>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -12,9 +13,17 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // Initialize the database manager with the path to the SQLite file
-    // dbManager = new DatabaseManager("/home/luca/Documents/Projects/Head_Hunter_9000/example.db");
-    dbManager = new DatabaseManager("/home/luca/Documents/Projects/Head_Hunter_9000/DatabaseStorage/jobappstest.db");
+    // Determine the configuration file path
+    QString configFilePath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config.ini";
+
+    // Ensure the directory exists
+    QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+
+    // Initialize QSettings with the config file path
+    settings = new QSettings(configFilePath, QSettings::IniFormat, this);
+
+    // Initialize the database manager with the settings instance
+    dbManager = new DatabaseManager(settings);
 
     // SidebarMenu is at index 0, scrollArea is at index 1 in the splitter
     ui->splitter->setStretchFactor(0, 0);  // SidebarMenu gets no stretch (fixed size)
@@ -31,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
 
 
 void MainWindow::cleanUpScraperConfigPage() {
-    qDebug() << "Ayo3";
+    delete scraperconfigurationui;
 }
 
 void MainWindow::cleanUpJobSearchCriteriaPage() {
@@ -72,12 +81,87 @@ MainWindow::~MainWindow() {
     delete dbManager;
 }
 
+void MainWindow::on_ScraperConfigBtn_clicked()
+{
+    scraperconfigurationui = new ScraperConfigurationUI(this, settings);
+    connect(scraperconfigurationui, &ScraperConfigurationUI::databasePathChanged, this, &MainWindow::onDatabasePathChanged);
+    ui->mainAreaContainer->layout()->addWidget(scraperconfigurationui);
+}
+
+void MainWindow::onDatabasePathChanged() {
+    dbManager->setDatabasePath();
+}
+
+void MainWindow::setExecutionStateUI() {
+    if (isProcessRunning){
+        ui->ExecuteBtn->setText("Stop Execution");
+        ui->applyModeCheckbox->setDisabled(true);
+    } else {
+        ui->ExecuteBtn->setText("Execute");
+        ui->applyModeCheckbox->setDisabled(false);
+    }
+}
+
+void MainWindow::on_ExecuteBtn_clicked() {
+    if (!isProcessRunning) {
+        // Start the process
+        QString scriptPath = "/home/luca/Documents/Projects/Head_Hunter_9000/run_scraper.sh";
+        QString configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config.ini";
+
+        thread = new QThread;
+        worker = new ProcessWorker("/bin/bash", QStringList() << scriptPath << configPath << QString::number(ui->applyModeCheckbox->isChecked()));
+
+        worker->moveToThread(thread);
+
+        connect(thread, &QThread::started, worker, &ProcessWorker::execute);
+        connect(worker, &ProcessWorker::processFinished, this, [this](const QString& output, const QString& errorOutput) {
+            qDebug() << "Script Output:" << output;
+            if (!errorOutput.isEmpty()) {
+                qDebug() << "Script Error:" << errorOutput;
+            }
+            // Process finished, reset state
+            isProcessRunning = false;
+            setExecutionStateUI();
+
+        });
+        connect(worker, &ProcessWorker::processError, this, [this](const QString& errorMessage) {
+            qDebug() << errorMessage;
+            // Process error, reset state
+            isProcessRunning = false;
+            setExecutionStateUI();
+        });
+
+        connect(worker, &ProcessWorker::processFinished, thread, &QThread::quit);
+        connect(worker, &ProcessWorker::processFinished, worker, &ProcessWorker::deleteLater);
+        connect(thread, &QThread::finished, thread, &QThread::deleteLater);
+
+        // Reset worker and thread pointers when thread finishes
+        connect(thread, &QThread::finished, this, [this]() {
+            worker = nullptr;
+            thread = nullptr;
+        });
+
+        isProcessRunning = true;
+        setExecutionStateUI();
+
+        thread->start();
+
+    } else {
+        // Stop the process
+        if (worker) {
+            // Emit signal to stop the process
+            QMetaObject::invokeMethod(worker, "stop", Qt::QueuedConnection);
+        }
+        // The state will be reset when the process finishes
+    }
+}
+
+
 void MainWindow::on_SeeAllQuestionsBtn_clicked()
 {
     seeallquestionsui = new SeeAllQuestionsUI(this, this->dbManager);
     ui->mainAreaContainer->layout()->addWidget(seeallquestionsui);
 }
-
 
 
 void MainWindow::on_AnswerQuestionsBtn_clicked()

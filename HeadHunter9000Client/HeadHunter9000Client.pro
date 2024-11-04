@@ -14,6 +14,8 @@ SOURCES += \
     databasemanager.cpp \
     main.cpp \
     mainwindow.cpp \
+    processworker.cpp \
+    scraperconfigurationui.cpp \
     seeallquestionsui.cpp
 
 HEADERS += \
@@ -21,6 +23,8 @@ HEADERS += \
     checkablecombobox.h \
     databasemanager.h \
     mainwindow.h \
+    processworker.h \
+    scraperconfigurationui.h \
     seeallquestionsui.h
 
 FORMS += \

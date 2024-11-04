@@ -13,7 +13,11 @@
             "request": "launch",
             "name": "Launch main.py",
             "cwd": "/home/luca/Documents/Projects/Head_Hunter_9000",
-            "program": "${workspaceFolder}/src/main.py"
+            "program": "${workspaceFolder}/src/main.py",
+            "args": [
+                "--config",
+                "${workspaceFolder}/config.ini"
+            ]
         }
    ]
 }
