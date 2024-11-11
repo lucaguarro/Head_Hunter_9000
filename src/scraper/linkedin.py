@@ -461,6 +461,7 @@ class Head_Hunter_9000:
             did_question_exist, answer = dm.get_free_response_answer(question_prompt)
             if not did_question_exist:
                 all_questions_answered = False
+                answer = "1"
                 questions_to_save.append((question_prompt, is_multiline))
             elif not answer:
                 all_questions_answered = False
@@ -626,6 +627,7 @@ class Head_Hunter_9000:
         cb_prompts_and_options = []
 
         next_btn = True
+        all_questions_answered = True
         while next_btn:
             next_btn = get_next_btn()
 
@@ -637,16 +639,18 @@ class Head_Hunter_9000:
                 radiobutton_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.radiobutton_question_container.xpath)
                 checkbox_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.checkbox_question_container.xpath)
 
-                self.fill_out_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container)
-                self.fill_out_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container)
-                self.fill_out_radiobutton_questions(radiobutton_question_containers, questionform_xpaths.radiobutton_question_container)
-                self.fill_out_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container)
-                # self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, checkbox_question_containers, questionform_xpaths.freeresponse_question_container)
+                fr_questions_to_save, all_fr_questions_answered = self.fill_out_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container)
+                dd_questions_to_save, all_dd_questions_answered = self.fill_out_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container)
+                # self.fill_out_radiobutton_questions(radiobutton_question_containers, questionform_xpaths.radiobutton_question_container)
+                # self.fill_out_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container)
 
-                fr_prompts.extend(self.scrape_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container))
-                dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container))
-                rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
-                cb_prompts_and_options.extend(self.scrape_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container))
+                fr_prompts.extend(fr_questions_to_save)
+                dd_prompts_and_options.extend(dd_questions_to_save)
+                # rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
+                # cb_prompts_and_options.extend(self.scrape_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container))
+
+                if all_questions_answered and (not all_fr_questions_answered or not all_dd_questions_answered):
+                    all_questions_answered = False
 
                 document_upload_containers = question_form.find_elements(By.XPATH, questionform_xpaths.document_upload_container.xpath)
                 made_it_past_document_selection = self.select_documents(document_upload_containers, questionform_xpaths.document_upload_container, job_info)

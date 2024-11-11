@@ -46,7 +46,7 @@
                                     },
                                     "subtitle": {
                                         "xpath": ".//div[@class='job-details-jobs-unified-top-card__primary-description-container']",
-                                        "regex": "^(.*?) · (Reposted )?(\\d+ (?:day|week|month|hour|minute)s? ago) · Over (\\d+(?:,\\d+)? applicants)$"
+                                        "regex": "^(.*?) · (Reposted )?(\\d+ (?:day|week|month|hour|minute)s? ago) · (?:Over )?(\\d+(?:,\\d+)? applicants)$"
                                     },
                                     "firstline": {
                                         "xpath": "(.//li[contains(@class, 'job-details-jobs-unified-top-card__job-insight')])[1]//span[not(contains(@class, 'visually-hidden')) and not(*[self::span])]"

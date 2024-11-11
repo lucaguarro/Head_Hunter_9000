@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import data.architecture as da
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import aliased
@@ -230,11 +230,11 @@ def get_dropdown_answer(question_prompt: str, options: List[dict]) -> Tuple[bool
 
     answer = (
         session.query(SelectedOption.value)
+        .select_from(da.DropDownQuestion)  # Set DropDownQuestion as the base
         .outerjoin(SelectedOption, da.DropDownQuestion.answerasoptionid == SelectedOption.id)
-        .join(da.Question, da.DropDownQuestion.id == da.Question.id)
         .filter(
             and_(
-                da.Question.question == question_prompt,
+                da.DropDownQuestion.question == question_prompt,  # Access via DropDownQuestion
                 da.DropDownQuestion.optionsetid == matching_optionset_id
             )
         )
