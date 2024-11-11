@@ -1,6 +1,9 @@
+from typing import List, Optional
 import data.architecture as da
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import func
+from sqlalchemy.orm import aliased
+from sqlalchemy import func, tuple_, and_
+from sqlalchemy.exc import NoResultFound
 
 session = None
 
@@ -158,6 +161,101 @@ def get_document_requirement_status_id(status_name):
     """
     status = session.query(da.DocumentRequirementStatus).filter_by(status=status_name).first()
     return status.id if status else None
+
+
+def get_dropdown_answer(question_prompt: str, options: List[dict]) -> Tuple[bool, Optional[str]]:
+    """
+    Determines if a dropdown question exists in the database based on the question prompt and options.
+    Each option is a dictionary with 'text' and 'value' keys.
+
+    Args:
+        question_prompt (str): The exact text of the dropdown question.
+        options (List[dict]): A list of dictionaries, each containing:
+            - "text": The display text of the option.
+            - "value": The value attribute of the option.
+
+    Returns:
+        Tuple[bool, Optional[str]]: 
+            - The first element is a boolean indicating whether the dropdown question exists.
+            - The second element is the `answerasoptionid` if the question exists; otherwise, `None`.
+    """
+    # Step 1: Retrieve Option IDs based on provided option texts and values
+    # Construct a list of tuples (text, value) from the options
+    option_tuples = [(opt['text'], opt['value']) for opt in options]
+
+    # Query the Option table for matching (text, value) pairs
+    option_ids_query = session.query(da.Option.id).filter(
+        tuple_(da.Option.text, da.Option.value).in_(option_tuples)
+    )
+    option_ids = [option_id for (option_id,) in option_ids_query.all()]
+
+    # Check if all provided (text, value) pairs were found
+    if len(option_ids) != len(option_tuples):
+        # Identify which options are missing
+        retrieved_options = session.query(da.Option.text, da.Option.value).filter(
+            tuple_(da.Option.text, da.Option.value).in_(option_tuples)
+        ).all()
+        retrieved_option_tuples = set(retrieved_options)
+        provided_option_tuples = set(option_tuples)
+        missing_options = provided_option_tuples - retrieved_option_tuples
+        print(f"Missing options in the database: {missing_options}")
+        return False, None
+
+    # Step 2: Identify OptionSet IDs that exactly match the provided Option IDs
+    # Find OptionSets that contain exactly the provided Option IDs
+    matching_optionset_ids = (
+        session.query(da.optionsetoption_table.c.optionsetid)
+        .filter(da.optionsetoption_table.c.optionid.in_(option_ids))
+        .group_by(da.optionsetoption_table.c.optionsetid)
+        .having(func.count(da.optionsetoption_table.c.optionid) == len(option_ids))
+        .all()
+    )
+
+    # Extract OptionSet IDs from the query result
+    matching_optionset_ids = [optionset_id for (optionset_id,) in matching_optionset_ids]
+
+    if len(matching_optionset_ids) != 1:
+        # Either no matching OptionSet found or multiple found, which shouldn't happen
+        if len(matching_optionset_ids) == 0:
+            print("No OptionSet matches the exact set of provided options.")
+        else:
+            print("Multiple OptionSets match the exact set of provided options.")
+        return False, None
+
+    # Extract the single matching OptionSet ID
+    matching_optionset_id = matching_optionset_ids[0]
+
+    # Step 3: Verify the existence of the DropDownQuestion with matching question_prompt and optionset_id
+    SelectedOption = aliased(da.Option)
+
+    answer = (
+        session.query(SelectedOption.value)
+        .outerjoin(SelectedOption, da.DropDownQuestion.answerasoptionid == SelectedOption.id)
+        .join(da.Question, da.DropDownQuestion.id == da.Question.id)
+        .filter(
+            and_(
+                da.Question.question == question_prompt,
+                da.DropDownQuestion.optionsetid == matching_optionset_id
+            )
+        )
+        .scalar()
+    )
+
+    if answer:
+        # dropdown_question is a tuple: (DropDownQuestion instance, selected_option_value)
+        return True, answer
+    else:
+        return False, None
+
+
+def get_free_response_answer(question_text):
+    try:
+        question = session.query(da.FreeResponseQuestion).filter(
+            da.FreeResponseQuestion.question == question_text
+        ).one()
+        return True, question.answer
+    except NoResultFound:
+        return False, None
     
 def flush():
     session.flush()

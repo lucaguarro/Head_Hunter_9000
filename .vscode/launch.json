@@ -16,7 +16,9 @@
             "program": "${workspaceFolder}/src/main.py",
             "args": [
                 "--config",
-                "${workspaceFolder}/config.ini"
+                "${workspaceFolder}/config.ini",
+                "--applymode",
+                "1"
             ]
         }
    ]
