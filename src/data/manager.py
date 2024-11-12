@@ -228,7 +228,7 @@ def get_dropdown_answer(question_prompt: str, options: List[dict]) -> Tuple[bool
     # Step 3: Verify the existence of the DropDownQuestion with matching question_prompt and optionset_id
     SelectedOption = aliased(da.Option)
 
-    answer = (
+    result = (
         session.query(SelectedOption.value)
         .select_from(da.DropDownQuestion)  # Set DropDownQuestion as the base
         .outerjoin(SelectedOption, da.DropDownQuestion.answerasoptionid == SelectedOption.id)
@@ -238,15 +238,87 @@ def get_dropdown_answer(question_prompt: str, options: List[dict]) -> Tuple[bool
                 da.DropDownQuestion.optionsetid == matching_optionset_id
             )
         )
-        .scalar()
+        .one_or_none()
     )
 
-    if answer:
-        # dropdown_question is a tuple: (DropDownQuestion instance, selected_option_value)
-        return True, answer
+    if result is None:
+        # No DropDownQuestion found matching the criteria
+        return False, None
     else:
+        # A DropDownQuestion exists; check if the selected_option_value is NULL
+        answer = result.value  # This will be None if answerasoptionid is NULL
+        return True, answer
+
+def get_radiobutton_answer(question_prompt: str, options: List[dict]) -> Tuple[bool, Optional[str]]:
+    # Step 1: Retrieve Option IDs based on provided option texts and values
+    # Construct a list of tuples (text, value) from the options
+    option_tuples = [(opt['text'], opt['value']) for opt in options]
+
+    # Query the Option table for matching (text, value) pairs
+    option_ids_query = session.query(da.Option.id).filter(
+        tuple_(da.Option.text, da.Option.value).in_(option_tuples)
+    )
+    option_ids = [option_id for (option_id,) in option_ids_query.all()]
+
+    # Check if all provided (text, value) pairs were found
+    if len(option_ids) != len(option_tuples):
+        # Identify which options are missing
+        retrieved_options = session.query(da.Option.text, da.Option.value).filter(
+            tuple_(da.Option.text, da.Option.value).in_(option_tuples)
+        ).all()
+        retrieved_option_tuples = set(retrieved_options)
+        provided_option_tuples = set(option_tuples)
+        missing_options = provided_option_tuples - retrieved_option_tuples
+        print(f"Missing options in the database: {missing_options}")
         return False, None
 
+    # Step 2: Identify OptionSet IDs that exactly match the provided Option IDs
+    # Find OptionSets that contain exactly the provided Option IDs
+    matching_optionset_ids = (
+        session.query(da.optionsetoption_table.c.optionsetid)
+        .filter(da.optionsetoption_table.c.optionid.in_(option_ids))
+        .group_by(da.optionsetoption_table.c.optionsetid)
+        .having(func.count(da.optionsetoption_table.c.optionid) == len(option_ids))
+        .all()
+    )
+
+    # Extract OptionSet IDs from the query result
+    matching_optionset_ids = [optionset_id for (optionset_id,) in matching_optionset_ids]
+
+    if len(matching_optionset_ids) != 1:
+        # Either no matching OptionSet found or multiple found, which shouldn't happen
+        if len(matching_optionset_ids) == 0:
+            print("No OptionSet matches the exact set of provided options.")
+        else:
+            print("Multiple OptionSets match the exact set of provided options.")
+        return False, None
+
+    # Extract the single matching OptionSet ID
+    matching_optionset_id = matching_optionset_ids[0]
+
+    # Step 3: Verify the existence of the RadioButtonQuestion with matching question_prompt and optionset_id
+    SelectedOption = aliased(da.Option)
+
+    result = (
+        session.query(SelectedOption.value)
+        .select_from(da.RadioButtonQuestion)  # Set RadioButtonQuestion as the base
+        .outerjoin(SelectedOption, da.RadioButtonQuestion.answerasoptionid == SelectedOption.id)
+        .filter(
+            and_(
+                da.RadioButtonQuestion.question == question_prompt,  # Access via RadioButtonQuestion
+                da.RadioButtonQuestion.optionsetid == matching_optionset_id
+            )
+        )
+        .one_or_none()
+    )
+
+    if result is None:
+        # No DropDownQuestion found matching the criteria
+        return False, None
+    else:
+        # A DropDownQuestion exists; check if the selected_option_value is NULL
+        answer = result.value  # This will be None if answerasoptionid is NULL
+        return True, answer
 
 def get_free_response_answer(question_text):
     try:
