@@ -108,7 +108,12 @@
                                         }
                                     },
                                     "radiobutton_question_container": {
-                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]"
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]",
+                                        "children": {
+                                            "app_aware_question_title": {
+                                                "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-form-section__grouping')]/preceding-sibling::span[contains(@class, 'jobs-easy-apply-form-section__group-title')][1]"
+                                            }
+                                        }
                                     },
                                     "checkbox_question_container": {
                                         "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-checkbox-form-component]",

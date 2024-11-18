@@ -362,7 +362,7 @@ class Head_Hunter_9000:
         return (question_prompt.strip(), option_list)
 
 
-    def scrape_radiobutton_question(self, rb_q_c):
+    def scrape_radiobutton_question(self, rb_q_c, radiobutton_question_container_xpaths):
         """
         Processes a single radio button question container and extracts the question prompt and options.
 
@@ -379,8 +379,11 @@ class Head_Hunter_9000:
                 ".//span[@data-test-form-builder-radio-button-form-component__title]/span[@aria-hidden='true']"
             ).text.strip()
         except NoSuchElementException:
-            # If the question prompt is not found, return None
-            return None
+            try:
+                question_prompt = rb_q_c.find_element(By.XPATH, radiobutton_question_container_xpaths.app_aware_question_title.xpath).get_attribute("innerText")
+            except NoSuchElementException:
+                # If neither XPath finds the question prompt, return None
+                return None
 
         try:
             # Assuming that each radio button option is within a <div> tag
@@ -415,35 +418,30 @@ class Head_Hunter_9000:
         return (question_prompt, option_list)
 
 
-    def scrape_checkbox_questions(self, checkbox_question_containers, checkbox_question_container_xpaths):
-        questions_with_options = []
+    def scrape_checkbox_questions(self, cb_q, checkbox_question_container_xpaths):
+        try:
+            question_prompt = cb_q.find_element(By.XPATH, ".//span[@aria-hidden='true']").text
+        except NoSuchElementException:
+            question_prompt = cb_q.find_element(By.XPATH, checkbox_question_container_xpaths.app_aware_question_title.xpath).get_attribute("innerText")
 
-        for cb_q_c in checkbox_question_containers:
-            try:
-                question_prompt = cb_q_c.find_element(By.XPATH, ".//span[@aria-hidden='true']").text
-            except NoSuchElementException:
-                question_prompt = cb_q_c.find_element(By.XPATH, checkbox_question_container_xpaths.app_aware_question_title.xpath).get_attribute("innerText")
+        input_containers = cb_q.find_elements(By.XPATH, "./div")
 
-            input_containers = cb_q_c.find_elements(By.XPATH, "./div")
+        # List to store the dictionaries
+        option_list = []
 
-            # List to store the dictionaries
-            option_list = []
+        for input_container in input_containers:
+            input = input_container.find_element(By.XPATH, "./input")
+            value = input.get_attribute("data-test-text-selectable-option__input")
 
-            for input_container in input_containers:
-                input = input_container.find_element(By.XPATH, "./input")
-                value = input.get_attribute("data-test-text-selectable-option__input")
+            inner_text = input_container.find_element(By.TAG_NAME, "label").text
 
-                inner_text = input_container.find_element(By.TAG_NAME, "label").text
+            option_dict = {
+                "text": inner_text,
+                "value": value
+            }
+            option_list.append(option_dict)
 
-                option_dict = {
-                    "text": inner_text,
-                    "value": value
-                }
-                option_list.append(option_dict)
-
-            questions_with_options.append((question_prompt, option_list))
-        
-        return questions_with_options
+        return (question_prompt, option_list)
 
 
     def fill_out_freeresponse_questions(self, freeresponse_question_containers, freeresponse_question_container_xpaths):
@@ -515,7 +513,7 @@ class Head_Hunter_9000:
         all_questions_answered = True
         questions_to_save = []
         for rb_q in radiobutton_question_containers:
-            question_prompt, options = self.scrape_radiobutton_question(rb_q)
+            question_prompt, options = self.scrape_radiobutton_question(rb_q, radiobutton_question_container_xpaths)
             did_question_exist, answer = dm.get_radiobutton_answer(question_prompt, options)
             
             if not did_question_exist:
@@ -535,9 +533,8 @@ class Head_Hunter_9000:
         all_questions_answered = True
         questions_to_save = []
         for cb_q in checkbox_question_containers:
-            pass
-            # question_prompt, options = self.scrape_checkbox_questions(cb_q, checkbox_question_container_xpaths)
-            # did_question_exist, answers = dm.get_checkbox_answers(question_prompt, options)
+            question_prompt, options = self.scrape_checkbox_questions(cb_q, checkbox_question_container_xpaths)
+            did_question_exist, answers = dm.get_checkbox_answers(question_prompt, options)
 
             # if not answers:
             #     all_questions_answered = False
@@ -547,6 +544,7 @@ class Head_Hunter_9000:
             #     desired_checkboxes = cb_q.find_elements(By.XPATH, ...)
             #     for desired_checkbox in desired_checkboxes:
             #         desired_checkbox.click()
+        return questions_to_save, all_questions_answered
 
     def select_documents(self, document_upload_containers, document_upload_container_xpaths, job_info):
 
