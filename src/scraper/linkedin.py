@@ -532,11 +532,21 @@ class Head_Hunter_9000:
         return questions_to_save, all_questions_answered
 
     def fill_out_checkbox_questions(self, checkbox_question_containers, checkbox_question_container_xpaths):
+        all_questions_answered = True
+        questions_to_save = []
         for cb_q in checkbox_question_containers:
-            question_prompt, options = self.scrape_checkbox_questions(cb_q, checkbox_question_container_xpaths)
-            checkboxes = cb_q.find_elements(By.XPATH, ".//label")
-            if checkboxes:
-                checkboxes[0].click()
+            pass
+            # question_prompt, options = self.scrape_checkbox_questions(cb_q, checkbox_question_container_xpaths)
+            # did_question_exist, answers = dm.get_checkbox_answers(question_prompt, options)
+
+            # if not answers:
+            #     all_questions_answered = False
+            #     checkboxes = cb_q.find_elements(By.XPATH, ...)
+            #     checkboxes[0].click()
+            # else:
+            #     desired_checkboxes = cb_q.find_elements(By.XPATH, ...)
+            #     for desired_checkbox in desired_checkboxes:
+            #         desired_checkbox.click()
 
     def select_documents(self, document_upload_containers, document_upload_container_xpaths, job_info):
 
@@ -655,6 +665,7 @@ class Head_Hunter_9000:
                 fr_questions_to_save, all_fr_questions_answered = self.fill_out_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container)
                 dd_questions_to_save, all_dd_questions_answered = self.fill_out_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container)
                 rb_questions_to_save, all_rb_questions_answered = self.fill_out_radiobutton_questions(radiobutton_question_containers, questionform_xpaths.radiobutton_question_container)
+                cb_questions_to_save, all_cb_questions_answered = self.fill_out_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container)
                 # self.fill_out_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container)
 
                 fr_prompts.extend(fr_questions_to_save)
