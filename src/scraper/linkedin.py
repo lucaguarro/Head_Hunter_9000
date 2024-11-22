@@ -617,7 +617,7 @@ class Head_Hunter_9000:
         # Return True if any and all required documents had an option and were selected successfully
         return True
 
-    def scrape_questions(self, job_info_container, job_info):
+    def scrape_questions(self, job_info_container, job_info, apply_mode_on):
         # def get_rvw_btn():
         #     rvw_btn = hh_9000.driver.find_elements(By.XPATH, "//span[text()='Review']/ancestor::button")
         #     if rvw_btn:
@@ -695,7 +695,7 @@ class Head_Hunter_9000:
                 next_btn.click()
 
         all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options, 'checkbox': cb_prompts_and_options}
-        if all_questions_answered:
+        if all_questions_answered and apply_mode_on:
             review_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.review_button.xpath)
             review_button.click()
             submit_application_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.submit_application_button.xpath)
@@ -746,7 +746,7 @@ class Head_Hunter_9000:
         except NoSuchElementException:
             return None
         
-    def process_job(self):
+    def process_job(self, apply_mode_on):
         if self.is_debugger_running() and self.config.getboolean('DEBUGGER', 'skip_question_scraping'): # skip this to save time during debugging
             return
         
@@ -755,7 +755,7 @@ class Head_Hunter_9000:
             job_info_container = self.driver.find_element(By.XPATH, xpaths.root_node.jobapps_main.jobinfo_container.xpath)
             job_info = self.build_job_info(job_info_container, ext_job_id)
             if not job_info['appsubmitted']: # can also do a check here to see if job already exists in local db TODO
-                all_questions = self.scrape_questions(job_info_container, job_info)
+                all_questions = self.scrape_questions(job_info_container, job_info, apply_mode_on)
                 self.store_to_database(job_info, all_questions)
         except RegexParseError as e:
             logger.error(e)
@@ -780,7 +780,7 @@ class Head_Hunter_9000:
                 link.click()
                 time.sleep(random.uniform(1, 2))
 
-                self.process_job()
+                self.process_job(apply_mode_on)
 
             curr_page_number += 1
             next_page_button = self.find_next_page_button(jobs_sidebar, curr_page_number, jobapps_sidebar_xpaths)
