@@ -696,10 +696,16 @@ class Head_Hunter_9000:
 
         all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options, 'checkbox': cb_prompts_and_options}
         if all_questions_answered:
-            close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
-            close_button.click()
-            close_button2 = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button2.xpath)
-            close_button2.click()
+            review_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.review_button.xpath)
+            review_button.click()
+            submit_application_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.submit_application_button.xpath)
+            submit_application_button.click()
+            try:
+                close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
+                close_button.click()
+            except NoSuchElementException:
+                # Close button not found; proceed without clicking
+                pass
         else:
             close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
             close_button.click()
