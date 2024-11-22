@@ -287,159 +287,276 @@ class Head_Hunter_9000:
             print("Could not find job id.")
             return ''
 
-    def scrape_freeresponse_questions(self, freeresponse_question_containers, freeresponse_question_container_xpaths):
-        questions = []
-        for fr_q_c in freeresponse_question_containers:
+    def scrape_freeresponse_question(self, fr_q_c, freeresponse_question_container_xpaths):
+        try:
+            # Try to find the label first
+            question_prompt = fr_q_c.find_element(By.TAG_NAME, "label").get_attribute("innerText")
+        except NoSuchElementException:
+            # If no label is found, check for "Screener Question"
             try:
-                # Try to find the label first
-                question_prompt = fr_q_c.find_element(By.TAG_NAME, "label").get_attribute("innerText")
+                # Navigate up the DOM and find the spans related to the screener question
+                # First span (group title)
+                group_title = fr_q_c.find_element(By.XPATH, freeresponse_question_container_xpaths.screener_question_title.xpath).get_attribute("innerText")
+                
+                # Second span (group subtitle)
+                group_subtitle = fr_q_c.find_element(By.XPATH, freeresponse_question_container_xpaths.screener_question_subtitle.xpath).get_attribute("innerText")
+                
+                # Combine the title and subtitle as the question prompt
+                question_prompt = f"{group_title}: {group_subtitle}"
             except NoSuchElementException:
-                # If no label is found, check for "Screener Question"
-                try:
-                    # Navigate up the DOM and find the spans related to the screener question
-                    # First span (group title)
-                    group_title = fr_q_c.find_element(By.XPATH, freeresponse_question_container_xpaths.screener_question_title.xpath).get_attribute("innerText")
-                    
-                    # Second span (group subtitle)
-                    group_subtitle = fr_q_c.find_element(By.XPATH, freeresponse_question_container_xpaths.screener_question_subtitle.xpath).get_attribute("innerText")
-                    
-                    # Combine the title and subtitle as the question prompt
-                    question_prompt = f"{group_title}: {group_subtitle}"
-                except NoSuchElementException:
-                    # If the spans are not found either, continue with the next element
-                    continue
+                # If the spans are not found either, return None
+                return None
 
-            is_multiline = False
-            multiline_entity = fr_q_c.get_attribute("data-test-multiline-text-form-component")
-            if multiline_entity is not None:
-                is_multiline = True
-            
-            # Append the question prompt (either from label or screener question) to the list
-            questions.append((question_prompt, is_multiline))
+        is_multiline = False
+        multiline_entity = fr_q_c.get_attribute("data-test-multiline-text-form-component")
+        if multiline_entity is not None:
+            is_multiline = True
+        
+        # Return the question prompt and multiline status
+        return (question_prompt.strip(), is_multiline)
 
-        return questions
 
-    def scrape_dropdown_questions(self, dropdown_question_containers, dropdown_question_container_xpaths):
-        questions_with_options = []
+    def scrape_dropdown_question(self, dd_q_c, dropdown_question_container_xpaths):
+        """
+        Processes a single dropdown question container and extracts the question prompt and options.
 
-        for dd_q_c in dropdown_question_containers:
+        Args:
+            dd_q_c (WebElement): The dropdown question container element.
+            dropdown_question_container_xpaths: XPath configurations for dropdown questions.
+
+        Returns:
+            tuple: A tuple containing the question prompt and a list of option dictionaries.
+                Returns None if the question prompt cannot be found.
+        """
+        try:
+            question_prompt = dd_q_c.find_element(By.XPATH, "./label/span[@aria-hidden='true']").text
+        except NoSuchElementException:
             try:
-                question_prompt = dd_q_c.find_element(By.XPATH, "./label/span[@aria-hidden='true']").text
-            except NoSuchElementException:
                 question_prompt = dd_q_c.find_element(By.XPATH, dropdown_question_container_xpaths.app_aware_question_title.xpath).get_attribute("innerText")
+            except NoSuchElementException:
+                # If neither XPath finds the question prompt, return None
+                return None
 
+        try:
             select = dd_q_c.find_element(By.TAG_NAME, "select")
             options = select.find_elements(By.TAG_NAME, "option")
+        except NoSuchElementException:
+            # If the select element or options are not found, return None
+            return None
 
-            # List to store the dictionaries
-            option_list = []
+        # List to store the option dictionaries
+        option_list = []
 
-            # Loop through the "option" elements and extract inner text and value
-            for option in options:
-                inner_text = option.text
-                value = option.get_attribute("value")
+        for option in options[1:]: # start from 1 to exclude the "select an option" option
+            inner_text = option.text.strip()
+            value = option.get_attribute("value").strip()
 
-                # Create a dictionary for each "option" element and add it to the list
-                if inner_text != 'Select an option':
+            option_dict = {
+                "text": inner_text,
+                "value": value,
+            }
+            option_list.append(option_dict)
+
+        return (question_prompt.strip(), option_list)
+
+
+    def scrape_radiobutton_question(self, rb_q_c, radiobutton_question_container_xpaths):
+        """
+        Processes a single radio button question container and extracts the question prompt and options.
+
+        Args:
+            rb_q_c (WebElement): The radio button question container element.
+
+        Returns:
+            tuple: A tuple containing the question prompt and a list of option dictionaries.
+                Returns None if the question prompt cannot be found.
+        """
+        try:
+            question_prompt = rb_q_c.find_element(
+                By.XPATH,
+                ".//span[@data-test-form-builder-radio-button-form-component__title]/span[@aria-hidden='true']"
+            ).text.strip()
+        except NoSuchElementException:
+            try:
+                question_prompt = rb_q_c.find_element(By.XPATH, radiobutton_question_container_xpaths.app_aware_question_title.xpath).get_attribute("innerText")
+            except NoSuchElementException:
+                # If neither XPath finds the question prompt, return None
+                return None
+
+        try:
+            # Assuming that each radio button option is within a <div> tag
+            input_containers = rb_q_c.find_elements(By.TAG_NAME, "div")
+        except NoSuchElementException:
+            # If no input containers are found, return None
+            return None
+
+        # List to store the option dictionaries
+        option_list = []
+
+        for input_container in input_containers:
+            try:
+                input_element = input_container.find_element(By.TAG_NAME, "input")
+                value = input_element.get_attribute("value").strip()
+                inner_text = input_container.find_element(By.TAG_NAME, "label").text.strip()
+
+                if inner_text:
                     option_dict = {
                         "text": inner_text,
                         "value": value
                     }
                     option_list.append(option_dict)
-
-            questions_with_options.append((question_prompt, option_list))
-
-        return questions_with_options
-
-
-    def scrape_radiobutton_questions(self, radiobutton_question_containers):
-        questions_with_options = []
-
-        for rb_q_c in radiobutton_question_containers:
-            question_prompt = rb_q_c.find_element(By.XPATH, ".//span[@data-test-form-builder-radio-button-form-component__title]/span[@aria-hidden='true']").text
-            print(question_prompt)
-
-            input_containers = rb_q_c.find_elements(By.TAG_NAME, "div")
-
-            # List to store the dictionaries
-            option_list = []
-
-            for input_container in input_containers:
-                input = input_container.find_element(By.TAG_NAME, "input")
-                value = input.get_attribute('value')
-
-                inner_text = input_container.find_element(By.TAG_NAME, "label").text
-
-                option_dict = {
-                    "text": inner_text,
-                    "value": value
-                }
-                option_list.append(option_dict)
-
-            questions_with_options.append((question_prompt, option_list))
-        
-        return questions_with_options
-    
-    def scrape_checkbox_questions(self, checkbox_question_containers, checkbox_question_container_xpaths):
-        questions_with_options = []
-
-        for cb_q_c in checkbox_question_containers:
-            try:
-                question_prompt = cb_q_c.find_element(By.XPATH, ".//span[@aria-hidden='true']").text
             except NoSuchElementException:
-                question_prompt = cb_q_c.find_element(By.XPATH, checkbox_question_container_xpaths.app_aware_question_title.xpath).get_attribute("innerText")
+                # If input or label is missing within the container, skip this option
+                continue
 
-            input_containers = cb_q_c.find_elements(By.XPATH, "./div")
+        if not option_list:
+            # If no valid options are found, return None
+            return None
 
-            # List to store the dictionaries
-            option_list = []
+        return (question_prompt, option_list)
 
-            for input_container in input_containers:
-                input = input_container.find_element(By.XPATH, "./input")
-                value = input.get_attribute('data-test-text-selectable-option__input')
 
-                inner_text = input_container.find_element(By.TAG_NAME, "label").text
+    def scrape_checkbox_questions(self, cb_q, checkbox_question_container_xpaths):
+        try:
+            question_prompt = cb_q.find_element(By.XPATH, ".//span[@aria-hidden='true']").text
+        except NoSuchElementException:
+            question_prompt = cb_q.find_element(By.XPATH, checkbox_question_container_xpaths.app_aware_question_title.xpath).get_attribute("innerText")
 
-                option_dict = {
-                    "text": inner_text,
-                    "value": value
-                }
-                option_list.append(option_dict)
+        input_containers = cb_q.find_elements(By.XPATH, "./div")
 
-            questions_with_options.append((question_prompt, option_list))
+        # List to store the dictionaries
+        option_list = []
+
+        for input_container in input_containers:
+            input = input_container.find_element(By.XPATH, "./input")
+            value = input.get_attribute("data-test-text-selectable-option__input")
+
+            inner_text = input_container.find_element(By.TAG_NAME, "label").text
+
+            option_dict = {
+                "text": inner_text,
+                "value": value
+            }
+            option_list.append(option_dict)
+
+        return (question_prompt, option_list)
+
+
+    def fill_out_freeresponse_questions(self, freeresponse_question_containers, freeresponse_question_container_xpaths):
+        """
+        Fills out free-response questions with a dummy answer ("1").
         
-        return questions_with_options
-
-    def fill_out_questions(self, freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, checkbox_question_containers, freeresponse_question_container_xpaths):
+        Args:
+            freeresponse_question_containers (List[WebElement]): List of free-response question containers.
+            freeresponse_question_container_xpaths: XPath configurations for free-response questions.
+        """
+        all_questions_answered = True
+        questions_to_save = []
         for fr_q in freeresponse_question_containers:
-            input_or_textarea = fr_q.find_element(By.XPATH, ".//input | .//textarea")
-            # input_tag = fr_q.find_element(By.TAG_NAME, "input")
-            input_or_textarea.clear()
-            input_or_textarea.send_keys("1")
-            typeahead_entity = fr_q.get_attribute("data-test-single-typeahead-entity-form-component")
-            if typeahead_entity is not None:
-                try:
-                    first_option = WebDriverWait(fr_q, 10).until(
-                        EC.presence_of_element_located((By.XPATH, freeresponse_question_container_xpaths.type_ahead_dropdown_first_option.xpath))
-                    )
-                except TimeoutException:
-                    print("Element was not found within the timeout period.")
-                first_option.click()
+            question_prompt, is_multiline = self.scrape_freeresponse_question(fr_q, freeresponse_question_container_xpaths)
+            did_question_exist, answer = dm.get_free_response_answer(question_prompt)
+            if not did_question_exist:
+                all_questions_answered = False
+                answer = "1"
+                questions_to_save.append((question_prompt, is_multiline))
+            elif not answer:
+                all_questions_answered = False
+                answer = "1"
 
+            try:
+                # Locate the input or textarea element
+                input_or_textarea = fr_q.find_element(By.XPATH, ".//input | .//textarea")
+                input_or_textarea.clear()
+                input_or_textarea.send_keys(answer)
+                
+                # Check for typeahead dropdown
+                typeahead_entity = fr_q.get_attribute("data-test-single-typeahead-entity-form-component")
+                if typeahead_entity is not None:
+                    try:
+                        first_option = WebDriverWait(fr_q, 10).until(
+                            EC.presence_of_element_located(
+                                (By.XPATH, freeresponse_question_container_xpaths.type_ahead_dropdown_first_option.xpath)
+                            )
+                        )
+                        first_option.click()
+                    except TimeoutException:
+                        print("Typeahead dropdown option was not found within the timeout period.")
+            except NoSuchElementException as e:
+                print(f"Free-response question element not found: {e}")
+                continue
+        
+        return questions_to_save, all_questions_answered
+
+    def fill_out_dropdown_questions(self, dropdown_question_containers, dropdown_question_container_xpaths):
+        all_questions_answered = True
+        questions_to_save = []
         for dd_q in dropdown_question_containers:
+            question_prompt, options = self.scrape_dropdown_question(dd_q, dropdown_question_container_xpaths)
+            did_question_exist, answer = dm.get_dropdown_answer(question_prompt, options)
             select_el = dd_q.find_element(By.TAG_NAME, "select")
             select = Select(select_el)
-            select.select_by_index(1)
 
+            if not did_question_exist:
+                questions_to_save.append((question_prompt, options))
+                
+            if not answer:
+                all_questions_answered = False
+                select.select_by_index(1)
+            else:
+                select.select_by_value(answer)
+
+        return questions_to_save, all_questions_answered
+
+    def fill_out_radiobutton_questions(self, radiobutton_question_containers, radiobutton_question_container_xpaths):
+        all_questions_answered = True
+        questions_to_save = []
         for rb_q in radiobutton_question_containers:
-            radio_buttons = rb_q.find_elements(By.XPATH, ".//label")
-            if radio_buttons:
-                radio_buttons[0].click()
+            question_prompt, options = self.scrape_radiobutton_question(rb_q, radiobutton_question_container_xpaths)
+            did_question_exist, answer = dm.get_radiobutton_answer(question_prompt, options)
+            
+            if not did_question_exist:
+                questions_to_save.append((question_prompt, options))
 
+            if not answer:
+                all_questions_answered = False
+                radio_buttons = rb_q.find_elements(By.XPATH, ".//label")
+                radio_buttons[0].click()
+            else:
+                desired_label = rb_q.find_element(By.XPATH, f".//input[@type='radio' and @value='{answer}']/following-sibling::label")
+                desired_label.click()
+
+        return questions_to_save, all_questions_answered
+
+    def fill_out_checkbox_questions(self, checkbox_question_containers, checkbox_question_container_xpaths):
+        all_questions_answered = True
+        questions_to_save = []
         for cb_q in checkbox_question_containers:
-            checkboxes = cb_q.find_elements(By.XPATH, ".//label")
-            if checkboxes:
-                checkboxes[0].click()
+            question_prompt, options = self.scrape_checkbox_questions(cb_q, checkbox_question_container_xpaths)
+            did_question_exist, answers = dm.get_checkbox_answers(question_prompt, options)
+
+            if not did_question_exist:
+                questions_to_save.append((question_prompt, options))
+
+            input_containers = cb_q.find_elements(By.XPATH, "./div")
+            # Assuming input_containers is a list of checkbox elements and answers is the list of desired answers
+            if not answers:  # If answers is empty, check only the first checkbox
+                all_questions_answered = False
+                # Find all checkboxes inside the first input container
+                checkboxes = input_containers[0].find_elements(By.XPATH, ".//input[@type='checkbox']")
+                if checkboxes:
+                    label = input_containers[0].find_element(By.TAG_NAME, "label")
+                    label.click()  # Click the label instead of the checkbox input
+            else:  # Otherwise, match the answers and check the corresponding checkboxes
+                for input_container in input_containers:
+                    # Find the label text for this checkbox
+                    label_element = input_container.find_element(By.TAG_NAME, "label")
+                    label_text = label_element.text
+                    # Check if this label text matches any of the answers
+                    if label_text in answers:
+                        # Click the label instead of the checkbox input
+                        if not input_container.find_element(By.XPATH, ".//input[@type='checkbox']").is_selected():
+                            label_element.click()
+        return questions_to_save, all_questions_answered
 
     def select_documents(self, document_upload_containers, document_upload_container_xpaths, job_info):
 
@@ -500,7 +617,7 @@ class Head_Hunter_9000:
         # Return True if any and all required documents had an option and were selected successfully
         return True
 
-    def scrape_questions(self, job_info_container, job_info):
+    def scrape_questions(self, job_info_container, job_info, apply_mode_on):
         # def get_rvw_btn():
         #     rvw_btn = hh_9000.driver.find_elements(By.XPATH, "//span[text()='Review']/ancestor::button")
         #     if rvw_btn:
@@ -543,6 +660,7 @@ class Head_Hunter_9000:
         cb_prompts_and_options = []
 
         next_btn = True
+        all_questions_answered = True
         while next_btn:
             next_btn = get_next_btn()
 
@@ -554,12 +672,18 @@ class Head_Hunter_9000:
                 radiobutton_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.radiobutton_question_container.xpath)
                 checkbox_question_containers = question_form.find_elements(By.XPATH, questionform_xpaths.checkbox_question_container.xpath)
 
-                self.fill_out_questions(freeresponse_question_containers, dropdown_question_containers, radiobutton_question_containers, checkbox_question_containers, questionform_xpaths.freeresponse_question_container)
+                fr_questions_to_save, all_fr_questions_answered = self.fill_out_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container)
+                dd_questions_to_save, all_dd_questions_answered = self.fill_out_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container)
+                rb_questions_to_save, all_rb_questions_answered = self.fill_out_radiobutton_questions(radiobutton_question_containers, questionform_xpaths.radiobutton_question_container)
+                cb_questions_to_save, all_cb_questions_answered = self.fill_out_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container)
 
-                fr_prompts.extend(self.scrape_freeresponse_questions(freeresponse_question_containers, questionform_xpaths.freeresponse_question_container))
-                dd_prompts_and_options.extend(self.scrape_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container))
-                rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
-                cb_prompts_and_options.extend(self.scrape_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container))
+                fr_prompts.extend(fr_questions_to_save)
+                dd_prompts_and_options.extend(dd_questions_to_save)
+                rb_prompts_and_options.extend(rb_questions_to_save)
+                cb_prompts_and_options.extend(cb_questions_to_save)
+
+                if all_questions_answered and (not all_fr_questions_answered or not all_dd_questions_answered or not all_rb_questions_answered or not all_cb_questions_answered):
+                    all_questions_answered = False
 
                 document_upload_containers = question_form.find_elements(By.XPATH, questionform_xpaths.document_upload_container.xpath)
                 made_it_past_document_selection = self.select_documents(document_upload_containers, questionform_xpaths.document_upload_container, job_info)
@@ -571,11 +695,22 @@ class Head_Hunter_9000:
                 next_btn.click()
 
         all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options, 'checkbox': cb_prompts_and_options}
-
-        close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
-        close_button.click()
-        close_button2 = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button2.xpath)
-        close_button2.click()
+        if all_questions_answered and apply_mode_on:
+            review_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.review_button.xpath)
+            review_button.click()
+            submit_application_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.submit_application_button.xpath)
+            submit_application_button.click()
+            try:
+                close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
+                close_button.click()
+            except NoSuchElementException:
+                # Close button not found; proceed without clicking
+                pass
+        else:
+            close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
+            close_button.click()
+            close_button2 = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button2.xpath)
+            close_button2.click()
 
         return all_questions
     
@@ -611,7 +746,7 @@ class Head_Hunter_9000:
         except NoSuchElementException:
             return None
         
-    def process_job(self):
+    def process_job(self, apply_mode_on):
         if self.is_debugger_running() and self.config.getboolean('DEBUGGER', 'skip_question_scraping'): # skip this to save time during debugging
             return
         
@@ -620,7 +755,7 @@ class Head_Hunter_9000:
             job_info_container = self.driver.find_element(By.XPATH, xpaths.root_node.jobapps_main.jobinfo_container.xpath)
             job_info = self.build_job_info(job_info_container, ext_job_id)
             if not job_info['appsubmitted']: # can also do a check here to see if job already exists in local db TODO
-                all_questions = self.scrape_questions(job_info_container, job_info)
+                all_questions = self.scrape_questions(job_info_container, job_info, apply_mode_on)
                 self.store_to_database(job_info, all_questions)
         except RegexParseError as e:
             logger.error(e)
@@ -645,7 +780,7 @@ class Head_Hunter_9000:
                 link.click()
                 time.sleep(random.uniform(1, 2))
 
-                self.process_job()
+                self.process_job(apply_mode_on)
 
             curr_page_number += 1
             next_page_button = self.find_next_page_button(jobs_sidebar, curr_page_number, jobapps_sidebar_xpaths)

@@ -46,7 +46,7 @@
                                     },
                                     "subtitle": {
                                         "xpath": ".//div[@class='job-details-jobs-unified-top-card__primary-description-container']",
-                                        "regex": "^(.*?) · (Reposted )?(\\d+ (?:day|week|month|hour|minute)s? ago) · Over (\\d+(?:,\\d+)? applicants)$"
+                                        "regex": "^(.*?) · (Reposted )?(\\d+ (?:day|week|month|hour|minute)s? ago) · (?:Over )?(\\d+(?:,\\d+)? applicants)$"
                                     },
                                     "firstline": {
                                         "xpath": "(.//li[contains(@class, 'job-details-jobs-unified-top-card__job-insight')])[1]//span[not(contains(@class, 'visually-hidden')) and not(*[self::span])]"
@@ -108,7 +108,12 @@
                                         }
                                     },
                                     "radiobutton_question_container": {
-                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]"
+                                        "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-form-builder-radio-button-form-component]",
+                                        "children": {
+                                            "app_aware_question_title": {
+                                                "xpath": ".//ancestor::div[contains(@class, 'jobs-easy-apply-form-section__grouping')]/preceding-sibling::span[contains(@class, 'jobs-easy-apply-form-section__group-title')][1]"
+                                            }
+                                        }
                                     },
                                     "checkbox_question_container": {
                                         "xpath": ".//div[contains(@class, 'jobs-easy-apply-form-section__grouping')]//fieldset[@data-test-checkbox-form-component]",
@@ -139,6 +144,12 @@
                             },
                             "closepage_button2": {
                                 "xpath": ".//button[@data-test-dialog-secondary-btn]"
+                            },
+                            "review_button": {
+                                "xpath": ".//button[@data-live-test-easy-apply-review-button]"
+                            },
+                            "submit_application_button": {
+                                "xpath": ".//button[@data-live-test-easy-apply-submit-button]"
                             }
                         }
                     }

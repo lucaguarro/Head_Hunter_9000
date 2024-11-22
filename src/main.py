@@ -30,6 +30,7 @@ def main(config_path, apply_mode):
     else:
         hh_9000.login()
         hh_9000.scan_job_apps(False)
+    print('Scraping finished. Closing.')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Head Hunter 9000 Script')
@@ -48,3 +49,4 @@ if __name__ == '__main__':
     )
     args = parser.parse_args()
     main(args.config, args.applymode)
+    
