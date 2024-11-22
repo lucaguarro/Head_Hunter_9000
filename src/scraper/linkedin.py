@@ -347,17 +347,15 @@ class Head_Hunter_9000:
         # List to store the option dictionaries
         option_list = []
 
-        for option in options:
+        for option in options[1:]: # start from 1 to exclude the "select an option" option
             inner_text = option.text.strip()
             value = option.get_attribute("value").strip()
 
-            # Exclude placeholder options
-            if inner_text.lower() != "select an option":
-                option_dict = {
-                    "text": inner_text,
-                    "value": value,
-                }
-                option_list.append(option_dict)
+            option_dict = {
+                "text": inner_text,
+                "value": value,
+            }
+            option_list.append(option_dict)
 
         return (question_prompt.strip(), option_list)
 
@@ -536,14 +534,28 @@ class Head_Hunter_9000:
             question_prompt, options = self.scrape_checkbox_questions(cb_q, checkbox_question_container_xpaths)
             did_question_exist, answers = dm.get_checkbox_answers(question_prompt, options)
 
-            # if not answers:
-            #     all_questions_answered = False
-            #     checkboxes = cb_q.find_elements(By.XPATH, ...)
-            #     checkboxes[0].click()
-            # else:
-            #     desired_checkboxes = cb_q.find_elements(By.XPATH, ...)
-            #     for desired_checkbox in desired_checkboxes:
-            #         desired_checkbox.click()
+            if not did_question_exist:
+                questions_to_save.append((question_prompt, options))
+
+            input_containers = cb_q.find_elements(By.XPATH, "./div")
+            # Assuming input_containers is a list of checkbox elements and answers is the list of desired answers
+            if not answers:  # If answers is empty, check only the first checkbox
+                all_questions_answered = False
+                # Find all checkboxes inside the first input container
+                checkboxes = input_containers[0].find_elements(By.XPATH, ".//input[@type='checkbox']")
+                if checkboxes:
+                    label = input_containers[0].find_element(By.TAG_NAME, "label")
+                    label.click()  # Click the label instead of the checkbox input
+            else:  # Otherwise, match the answers and check the corresponding checkboxes
+                for input_container in input_containers:
+                    # Find the label text for this checkbox
+                    label_element = input_container.find_element(By.TAG_NAME, "label")
+                    label_text = label_element.text
+                    # Check if this label text matches any of the answers
+                    if label_text in answers:
+                        # Click the label instead of the checkbox input
+                        if not input_container.find_element(By.XPATH, ".//input[@type='checkbox']").is_selected():
+                            label_element.click()
         return questions_to_save, all_questions_answered
 
     def select_documents(self, document_upload_containers, document_upload_container_xpaths, job_info):
@@ -664,15 +676,13 @@ class Head_Hunter_9000:
                 dd_questions_to_save, all_dd_questions_answered = self.fill_out_dropdown_questions(dropdown_question_containers, questionform_xpaths.dropdown_question_container)
                 rb_questions_to_save, all_rb_questions_answered = self.fill_out_radiobutton_questions(radiobutton_question_containers, questionform_xpaths.radiobutton_question_container)
                 cb_questions_to_save, all_cb_questions_answered = self.fill_out_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container)
-                # self.fill_out_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container)
 
                 fr_prompts.extend(fr_questions_to_save)
                 dd_prompts_and_options.extend(dd_questions_to_save)
                 rb_prompts_and_options.extend(rb_questions_to_save)
-                # rb_prompts_and_options.extend(self.scrape_radiobutton_questions(radiobutton_question_containers))
-                # cb_prompts_and_options.extend(self.scrape_checkbox_questions(checkbox_question_containers, questionform_xpaths.checkbox_question_container))
+                cb_prompts_and_options.extend(cb_questions_to_save)
 
-                if all_questions_answered and (not all_fr_questions_answered or not all_dd_questions_answered or not all_rb_questions_answered):
+                if all_questions_answered and (not all_fr_questions_answered or not all_dd_questions_answered or not all_rb_questions_answered or not all_cb_questions_answered):
                     all_questions_answered = False
 
                 document_upload_containers = question_form.find_elements(By.XPATH, questionform_xpaths.document_upload_container.xpath)
@@ -685,11 +695,16 @@ class Head_Hunter_9000:
                 next_btn.click()
 
         all_questions = {'freeresponse': fr_prompts, 'dropdown': dd_prompts_and_options, 'radiobutton': rb_prompts_and_options, 'checkbox': cb_prompts_and_options}
-
-        close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
-        close_button.click()
-        close_button2 = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button2.xpath)
-        close_button2.click()
+        if all_questions_answered:
+            close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
+            close_button.click()
+            close_button2 = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button2.xpath)
+            close_button2.click()
+        else:
+            close_button = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button.xpath)
+            close_button.click()
+            close_button2 = self.driver.find_element(By.XPATH, jobapp_popup_xpaths.closepage_button2.xpath)
+            close_button2.click()
 
         return all_questions
     

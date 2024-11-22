@@ -320,7 +320,7 @@ def get_radiobutton_answer(question_prompt: str, options: List[dict]) -> Tuple[b
         answer = result.value  # This will be None if answerasoptionid is NULL
         return True, answer
     
-def get_checkbox_answer(question_prompt: str, options: List[dict]) -> Tuple[bool, Optional[List[str]]]:
+def get_checkbox_answers(question_prompt: str, options: List[dict]) -> Tuple[bool, Optional[List[str]]]:
     """
     Determines if a checkbox question exists in the database based on the question prompt and options.
     Each option is a dictionary with 'text' and 'value' keys.
