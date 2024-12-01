@@ -54,7 +54,7 @@ void MainWindow::onSidebarButtonClicked(QPushButton* clickedButton, const QList<
         } else if (previousButton == ui->ScraperConfigBtn) {
             delete scraperconfigurationui;
         } else if (previousButton == ui->ViewJobListingsBtn) {
-            cleanUpJobListingsPage();
+            delete joblistingsui;
         }
     }
 
