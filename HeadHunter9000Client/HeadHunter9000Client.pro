@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui svg
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets sql
 
@@ -46,6 +46,8 @@ DISTFILES += \
     assets/icons/database.svg \
     assets/icons/person_raised_hand.svg \
     assets/icons/robot.svg \
+    assets/icons/star-regular.svg \
+    assets/icons/star-solid.svg \
     assets/icons/work.svg
 
 RESOURCES += \

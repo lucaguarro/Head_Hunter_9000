@@ -1,3 +1,5 @@
+// starratingwidget.h
+
 #ifndef STARRATINGWIDGET_H
 #define STARRATINGWIDGET_H
 

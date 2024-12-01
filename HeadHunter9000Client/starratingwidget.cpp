@@ -1,20 +1,23 @@
 #include "starratingwidget.h"
 #include <QPainter>
 #include <QMouseEvent>
-#include <QPixmap>
+#include <QSvgRenderer>
+#include <QDebug>
 
 StarRatingWidget::StarRatingWidget(QWidget *parent)
     : QWidget(parent)
     , m_rating(0)
 {
-    setMinimumSize(100, 20);
+    setMinimumSize(100, 30); // Adjusted for better visibility
+    // setMaximumHeight(30);
+    setStyleSheet("background-color: lightgray;"); // Temporary background color for debugging
 }
 
 void StarRatingWidget::setRating(int rating)
 {
     if (rating != m_rating && rating >= 0 && rating <= 5) {
         m_rating = rating;
-        update();
+        update(); // Trigger repaint
         emit ratingChanged(m_rating);
     }
 }
@@ -27,20 +30,28 @@ int StarRatingWidget::rating() const
 void StarRatingWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
-
     QPainter painter(this);
     int starWidth = width() / 5;
     int starHeight = height();
 
-    QPixmap filledStar(":/images/filled_star.png"); // Ensure this path is correct
-    QPixmap emptyStar(":/images/empty_star.png");   // Ensure this path is correct
+    // Initialize SVG Renderers with explicit parent
+    QSvgRenderer rendererFilled(QStringLiteral(":/icons/assets/icons/star-solid.svg"), this);
+    QSvgRenderer rendererEmpty(QStringLiteral(":/icons/assets/icons/star-regular.svg"), this);
+
+    // Check if SVGs are loaded correctly
+    if (!rendererFilled.isValid()) {
+        qWarning() << "Failed to load filled star SVG.";
+    }
+    if (!rendererEmpty.isValid()) {
+        qWarning() << "Failed to load empty star SVG.";
+    }
 
     for (int i = 0; i < 5; ++i) {
         QRect starRect(i * starWidth, 0, starWidth, starHeight);
         if (i < m_rating) {
-            painter.drawPixmap(starRect, filledStar);
+            rendererFilled.render(&painter, starRect);
         } else {
-            painter.drawPixmap(starRect, emptyStar);
+            rendererEmpty.render(&painter, starRect);
         }
     }
 }
