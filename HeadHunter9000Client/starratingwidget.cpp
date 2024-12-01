@@ -8,9 +8,9 @@ StarRatingWidget::StarRatingWidget(QWidget *parent)
     : QWidget(parent)
     , m_rating(0)
 {
-    setMinimumSize(100, 30); // Adjusted for better visibility
-    // setMaximumHeight(30);
-    setStyleSheet("background-color: lightgray;"); // Temporary background color for debugging
+    setMinimumSize(100, 20); // Width: 100px, Height: 20px
+    setMaximumSize(150, 20); // Allow minor expansion in width
+    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed); // Fixed height
 }
 
 void StarRatingWidget::setRating(int rating)

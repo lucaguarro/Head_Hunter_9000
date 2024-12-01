@@ -1,3 +1,5 @@
+// joblistingsui.cpp
+
 #include "joblistingsui.h"
 #include "databasemanager.h"
 #include <QLabel>
@@ -37,6 +39,7 @@ void JobListingsUI::setupUI()
 
     // Initialize StarRatingWidget
     starRatingWidget = new StarRatingWidget(this);
+    starRatingWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed); // Ensure proper sizing
     connect(starRatingWidget, &StarRatingWidget::ratingChanged,
             this, &JobListingsUI::updatePreferenceScore);
 
@@ -55,7 +58,6 @@ void JobListingsUI::setupUI()
     contentLayout->addWidget(jobTitleLabel);
     contentLayout->addWidget(descriptionLabel);
     contentLayout->addWidget(createdAtLabel);
-    contentLayout->addWidget(starRatingWidget);
     contentLayout->setAlignment(Qt::AlignTop); // Align content to the top
 
     // Initialize Scroll Area
@@ -70,14 +72,23 @@ void JobListingsUI::setupUI()
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->addWidget(scrollArea); // Add Scroll Area to the main layout
 
+    // Create a horizontal layout for the StarRatingWidget
+    QHBoxLayout *ratingLayout = new QHBoxLayout();
+    ratingLayout->addStretch(); // Add expandable space before the widget
+    ratingLayout->addWidget(starRatingWidget); // Add the StarRatingWidget
+    ratingLayout->addStretch(); // Add expandable space after the widget
+
+    // Add the rating layout to the main layout
+    mainLayout->addLayout(ratingLayout);
+
     QHBoxLayout *buttonLayout = new QHBoxLayout();
     buttonLayout->addWidget(prevButton);
     buttonLayout->addWidget(nextButton);
 
-    mainLayout->addLayout(buttonLayout);
+    mainLayout->addLayout(buttonLayout); // Add Navigation Buttons below StarRatingWidget
+
     setLayout(mainLayout);
 }
-
 
 void JobListingsUI::loadJobs()
 {
@@ -128,8 +139,6 @@ void JobListingsUI::displayCurrentJob()
     prevButton->setEnabled(currentIndex > 0);
     nextButton->setEnabled(currentIndex < jobList.size() - 1);
 }
-
-
 
 void JobListingsUI::showPreviousJob()
 {
