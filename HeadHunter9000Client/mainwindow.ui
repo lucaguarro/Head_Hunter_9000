@@ -44,6 +44,23 @@
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_4">
         <item>
+         <widget class="QPushButton" name="SeeAllQuestionsBtn">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>See All Questions</string>
+          </property>
+          <property name="icon">
+           <iconset resource="resources.qrc">
+            <normaloff>:/icons/assets/icons/database.svg</normaloff>:/icons/assets/icons/database.svg</iconset>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="AnswerQuestionsBtn">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -78,7 +95,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="JobSearchCriteriaBtn">
+         <widget class="QPushButton" name="ViewJobListingsBtn">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -86,28 +103,11 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Job Search Criteria</string>
+           <string>View Job Listings</string>
           </property>
           <property name="icon">
            <iconset resource="resources.qrc">
             <normaloff>:/icons/assets/icons/work.svg</normaloff>:/icons/assets/icons/work.svg</iconset>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="SeeAllQuestionsBtn">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>See All Questions</string>
-          </property>
-          <property name="icon">
-           <iconset resource="resources.qrc">
-            <normaloff>:/icons/assets/icons/database.svg</normaloff>:/icons/assets/icons/database.svg</iconset>
           </property>
          </widget>
         </item>

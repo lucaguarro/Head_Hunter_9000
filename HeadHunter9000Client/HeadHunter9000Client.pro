@@ -12,20 +12,25 @@ SOURCES += \
     askquestionsui.cpp \
     checkablecombobox.cpp \
     databasemanager.cpp \
+    joblistingsui.cpp \
     main.cpp \
     mainwindow.cpp \
     processworker.cpp \
     scraperconfigurationui.cpp \
-    seeallquestionsui.cpp
+    seeallquestionsui.cpp \
+    starratingwidget.cpp
 
 HEADERS += \
     askquestionsui.h \
     checkablecombobox.h \
     databasemanager.h \
+    job.h \
+    joblistingsui.h \
     mainwindow.h \
     processworker.h \
     scraperconfigurationui.h \
-    seeallquestionsui.h
+    seeallquestionsui.h \
+    starratingwidget.h
 
 FORMS += \
     mainwindow.ui

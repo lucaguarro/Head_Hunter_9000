@@ -30,7 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->splitter->setStretchFactor(1, 1);  // scrollArea stretches to fill the remaining space
     ui->splitter->setSizes({200,1});
 
-    QList<QPushButton*> sidebar_buttons = {ui->AnswerQuestionsBtn, ui->ScraperConfigBtn, ui->SeeAllQuestionsBtn, ui->JobSearchCriteriaBtn};
+    QList<QPushButton*> sidebar_buttons = {ui->AnswerQuestionsBtn, ui->ScraperConfigBtn, ui->SeeAllQuestionsBtn, ui->ViewJobListingsBtn};
     for (auto button : sidebar_buttons) {
         connect(button, &QPushButton::clicked, this, [=]() {
             onSidebarButtonClicked(button, sidebar_buttons);
@@ -38,12 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
     }
 }
 
-
-void MainWindow::cleanUpScraperConfigPage() {
-    delete scraperconfigurationui;
-}
-
-void MainWindow::cleanUpJobSearchCriteriaPage() {
+void MainWindow::cleanUpJobListingsPage() {
     qDebug() << "Ayo4";
 }
 
@@ -57,9 +52,9 @@ void MainWindow::onSidebarButtonClicked(QPushButton* clickedButton, const QList<
         } else if (previousButton == ui->SeeAllQuestionsBtn) {
             delete seeallquestionsui;
         } else if (previousButton == ui->ScraperConfigBtn) {
-            cleanUpScraperConfigPage();
-        } else if (previousButton == ui->JobSearchCriteriaBtn) {
-            cleanUpJobSearchCriteriaPage();
+            delete scraperconfigurationui;
+        } else if (previousButton == ui->ViewJobListingsBtn) {
+            cleanUpJobListingsPage();
         }
     }
 
@@ -168,4 +163,9 @@ void MainWindow::on_AnswerQuestionsBtn_clicked()
 {
     askquestionsui = new AskQuestionsUI(this, this->dbManager);
     ui->mainAreaContainer->layout()->addWidget(askquestionsui);
+}
+
+void MainWindow::on_ViewJobListingsBtn_clicked(){
+    joblistingsui = new JobListingsUI(this, this->dbManager);
+    ui->mainAreaContainer->layout()->addWidget(joblistingsui);
 }

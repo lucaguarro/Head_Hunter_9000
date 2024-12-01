@@ -9,6 +9,7 @@
 #include "scraperconfigurationui.h"
 #include "seeallquestionsui.h"
 #include "processworker.h"
+#include "joblistingsui.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -27,6 +28,7 @@ public:
 private slots:
     void on_AnswerQuestionsBtn_clicked();
     void on_SeeAllQuestionsBtn_clicked();
+    void on_ViewJobListingsBtn_clicked();
     void on_ScraperConfigBtn_clicked();
     void on_ExecuteBtn_clicked();
 
@@ -35,6 +37,7 @@ private:
     AskQuestionsUI* askquestionsui;
     SeeAllQuestionsUI* seeallquestionsui;
     ScraperConfigurationUI* scraperconfigurationui;
+    JobListingsUI* joblistingsui;
     QSettings* settings;
 
     QPushButton* previousButton;
@@ -49,8 +52,7 @@ private:
     // Function to load and display questions from the database
     void saveData();
     void onSidebarButtonClicked(QPushButton *clickedButton, const QList<QPushButton *> &buttons);
-    void cleanUpScraperConfigPage();
-    void cleanUpJobSearchCriteriaPage();
+    void cleanUpJobListingsPage();
     QVBoxLayout *setupScrollAreaAndSaveButton();
     void loadQuestions(QVBoxLayout *contentLayout);
     void addQuestionToPanel(QVBoxLayout *contentLayout, const QString &questionText, const QString &questionType, int questionId);
