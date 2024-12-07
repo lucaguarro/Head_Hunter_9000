@@ -13,11 +13,13 @@ SOURCES += \
     checkablecombobox.cpp \
     databasemanager.cpp \
     joblistingsui.cpp \
+    jobpreviewwidget.cpp \
     main.cpp \
     mainwindow.cpp \
     processworker.cpp \
     scraperconfigurationui.cpp \
     seeallquestionsui.cpp \
+    sidebarjoblistwidget.cpp \
     starratingwidget.cpp
 
 HEADERS += \
@@ -26,10 +28,12 @@ HEADERS += \
     databasemanager.h \
     job.h \
     joblistingsui.h \
+    jobpreviewwidget.h \
     mainwindow.h \
     processworker.h \
     scraperconfigurationui.h \
     seeallquestionsui.h \
+    sidebarjoblistwidget.h \
     starratingwidget.h
 
 FORMS += \

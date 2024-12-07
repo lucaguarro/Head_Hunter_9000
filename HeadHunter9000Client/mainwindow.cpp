@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "processworker.h"
 #include "ui_mainwindow.h"
+#include "sidebarjoblistwidget.h"
 #include <QDebug>
 #include <QProcess>
 #include <QThread>
@@ -36,6 +37,20 @@ MainWindow::MainWindow(QWidget *parent)
             onSidebarButtonClicked(button, sidebar_buttons);
         });
     }
+
+    // Assume `dbManager` is already initialized
+    SidebarJobListWidget *sidebarJobListWidget = new SidebarJobListWidget(dbManager, this);
+
+    // Locate the sidebar layout
+    QWidget *sidebarMenu = findChild<QWidget *>("SidebarMenu");
+    QVBoxLayout *sidebarLayout = qobject_cast<QVBoxLayout *>(sidebarMenu->layout());
+
+    // Add the new widget between `ViewJobListingsBtn` and `applyModeCheckbox`
+    QPushButton *viewJobListingsBtn = findChild<QPushButton *>("ViewJobListingsBtn");
+
+    // Insert the widget at the desired position
+    int insertIndex = sidebarLayout->indexOf(viewJobListingsBtn) + 1;
+    sidebarLayout->insertWidget(insertIndex, sidebarJobListWidget);
 }
 
 void MainWindow::cleanUpJobListingsPage() {
