@@ -95,23 +95,6 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="ViewJobListingsBtn">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="text">
-           <string>View Job Listings</string>
-          </property>
-          <property name="icon">
-           <iconset resource="resources.qrc">
-            <normaloff>:/icons/assets/icons/work.svg</normaloff>:/icons/assets/icons/work.svg</iconset>
-          </property>
-         </widget>
-        </item>
-        <item>
          <widget class="QCheckBox" name="applyModeCheckbox">
           <property name="text">
            <string>Apply mode</string>

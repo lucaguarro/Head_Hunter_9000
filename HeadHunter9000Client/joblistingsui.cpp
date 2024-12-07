@@ -1,7 +1,6 @@
-// joblistingsui.cpp
-
 #include "joblistingsui.h"
-#include "databasemanager.h"
+#include "sidebarjoblistwidget.h"
+#include "starratingwidget.h"
 #include <QLabel>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -9,14 +8,18 @@
 #include <QScrollArea>
 #include <QDebug>
 
-JobListingsUI::JobListingsUI(QWidget *parent, DatabaseManager *dbManager)
-    : QWidget(parent)
-    , dbManager(dbManager)
-    , currentIndex(0)
+JobListingsUI::JobListingsUI(QWidget *parent, DatabaseManager *dbManager, SidebarJobListWidget *sidebar)
+    : QWidget(parent), dbManager(dbManager), sidebar(sidebar), currentIndex(0)
 {
     setupUI();
-    loadJobs();
-    displayCurrentJob();
+
+    // Connect Sidebar Selection Signal
+    connect(sidebar, &SidebarJobListWidget::jobSelected, this, &JobListingsUI::handleSidebarSelection);
+
+    // Display the first job if available
+    if (!sidebar->getJobs().isEmpty()) {
+        displayCurrentJob();
+    }
 }
 
 void JobListingsUI::setupUI()
@@ -90,18 +93,11 @@ void JobListingsUI::setupUI()
     setLayout(mainLayout);
 }
 
-void JobListingsUI::loadJobs()
-{
-    // Fetch jobs using the provided getJobs() method
-    jobList = dbManager->getJobs();
-    if (jobList.isEmpty()) {
-        qDebug() << "No jobs available to display.";
-    }
-}
-
 void JobListingsUI::displayCurrentJob()
 {
-    if (jobList.isEmpty()) {
+    const QList<Job> &jobList = sidebar->getJobs();
+
+    if (jobList.isEmpty() || currentIndex < 0 || currentIndex >= jobList.size()) {
         companyNameLabel->setText("No job postings available.");
         locationLabel->clear();
         jobTitleLabel->clear();
@@ -114,6 +110,7 @@ void JobListingsUI::displayCurrentJob()
     }
 
     const Job &job = jobList.at(currentIndex);
+
 
     // Set Company Name
     companyNameLabel->setText("<b>Company:</b> " + job.companyName.toHtmlEscaped());
@@ -143,34 +140,41 @@ void JobListingsUI::displayCurrentJob()
 void JobListingsUI::showPreviousJob()
 {
     if (currentIndex > 0) {
-        currentIndex--;
+        --currentIndex;
         displayCurrentJob();
     }
 }
 
 void JobListingsUI::showNextJob()
 {
-    if (currentIndex < jobList.size() - 1) {
-        currentIndex++;
+    if (currentIndex < sidebar->getJobs().size() - 1) {
+        ++currentIndex;
+        displayCurrentJob();
+    }
+}
+
+void JobListingsUI::handleSidebarSelection(int index)
+{
+    if (index >= 0 && index < sidebar->getJobs().size()) {
+        currentIndex = index;
         displayCurrentJob();
     }
 }
 
 void JobListingsUI::updatePreferenceScore(int score)
 {
-    if (jobList.isEmpty())
+    const QList<Job> &jobList = sidebar->getJobs();
+
+    if (jobList.isEmpty() || currentIndex < 0 || currentIndex >= jobList.size()) {
+        qWarning() << "No job to update the preference score.";
         return;
+    }
 
     // Update the preference score in the database
     const Job &job = jobList.at(currentIndex);
     dbManager->updateJobPreferenceScore(job.id, score);
 
-    // Update local data
-    jobList[currentIndex].preferenceScore = score;
-
-    // Optionally, you can provide feedback to the user
+    // Optionally, update the UI or provide feedback to the user
     qDebug() << "Updated preference score for job ID" << job.id << "to" << score;
-
-    // Refresh the star rating display (optional, as StarRatingWidget already reflects the change)
-    // starRatingWidget->setRating(score);
 }
+

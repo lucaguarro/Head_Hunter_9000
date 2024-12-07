@@ -6,6 +6,7 @@
 SidebarJobListWidget::SidebarJobListWidget(DatabaseManager *dbManager, QWidget *parent)
     : QWidget(parent), dbManager(dbManager)
 {
+    qDebug() << "SidebarJobListWidget parent during creation:" << parent;
     // Initialize List Widget
     jobListWidget = new QListWidget(this);
     jobListWidget->setSpacing(5); // Add spacing between items
@@ -29,9 +30,11 @@ SidebarJobListWidget::SidebarJobListWidget(DatabaseManager *dbManager, QWidget *
 void SidebarJobListWidget::loadJobs()
 {
     // Fetch jobs from DatabaseManager
-    QList<Job> jobs = dbManager->getJobs();
+    jobList = dbManager->getJobs();
 
-    for (const Job &job : jobs) {
+    for (int i = 0; i < jobList.size(); ++i) {
+        const Job &job = jobList[i];
+
         // Create a custom widget for each job preview
         JobPreviewWidget *previewWidget = new JobPreviewWidget(job.jobTitle, job.companyName, this);
 
@@ -43,16 +46,31 @@ void SidebarJobListWidget::loadJobs()
         jobListWidget->addItem(item);
         jobListWidget->setItemWidget(item, previewWidget);
 
-        // Store job ID in the item for selection handling
-        item->setData(Qt::UserRole, job.id);
+        // Store job index in the item for selection handling
+        item->setData(Qt::UserRole, i);
+    }
+}
+
+const QList<Job>& SidebarJobListWidget::getJobs() const
+{
+    return jobList;
+}
+
+void SidebarJobListWidget::selectJobByIndex(int index)
+{
+    if (index >= 0 && index < jobListWidget->count()) {
+        jobListWidget->setCurrentRow(index); // Update the selected row
+        emit jobSelected(index);            // Emit the selection signal
     }
 }
 
 void SidebarJobListWidget::handleItemClick(QListWidgetItem *item)
 {
-    // Emit signal with the job ID of the clicked item
-    int jobId = item->data(Qt::UserRole).toInt();
-    emit jobSelected(jobId);
+    // Safely cast the parent to MainWindow
+    emit jobListingRequested(); // Emit the signal
 
-    qDebug() << "Job ID" << jobId << "selected.";
+    // Emit jobSelected signal with the index of the clicked item
+    int index = item->data(Qt::UserRole).toInt();
+    emit jobSelected(index);
 }
+

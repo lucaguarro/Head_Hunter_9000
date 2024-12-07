@@ -9,6 +9,7 @@
 #include "scraperconfigurationui.h"
 #include "seeallquestionsui.h"
 #include "processworker.h"
+#include "sidebarjoblistwidget.h"
 #include "joblistingsui.h"
 
 QT_BEGIN_NAMESPACE
@@ -22,6 +23,8 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
+    JobListingsUI* joblistingsui;
+    void createJobListingsUI();
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
@@ -37,7 +40,8 @@ private:
     AskQuestionsUI* askquestionsui;
     SeeAllQuestionsUI* seeallquestionsui;
     ScraperConfigurationUI* scraperconfigurationui;
-    JobListingsUI* joblistingsui;
+
+    SidebarJobListWidget* sidebarjoblistwidget;
     QSettings* settings;
 
     QPushButton* previousButton;

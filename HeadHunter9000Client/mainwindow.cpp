@@ -9,6 +9,7 @@
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
+    , joblistingsui(nullptr)
     , ui(new Ui::MainWindow)
     , previousButton(nullptr)
 {
@@ -31,7 +32,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->splitter->setStretchFactor(1, 1);  // scrollArea stretches to fill the remaining space
     ui->splitter->setSizes({200,1});
 
-    QList<QPushButton*> sidebar_buttons = {ui->AnswerQuestionsBtn, ui->ScraperConfigBtn, ui->SeeAllQuestionsBtn, ui->ViewJobListingsBtn};
+    QList<QPushButton*> sidebar_buttons = {ui->AnswerQuestionsBtn, ui->ScraperConfigBtn};
     for (auto button : sidebar_buttons) {
         connect(button, &QPushButton::clicked, this, [=]() {
             onSidebarButtonClicked(button, sidebar_buttons);
@@ -39,18 +40,20 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     // Assume `dbManager` is already initialized
-    SidebarJobListWidget *sidebarJobListWidget = new SidebarJobListWidget(dbManager, this);
+    sidebarjoblistwidget = new SidebarJobListWidget(dbManager, this);
 
     // Locate the sidebar layout
     QWidget *sidebarMenu = findChild<QWidget *>("SidebarMenu");
     QVBoxLayout *sidebarLayout = qobject_cast<QVBoxLayout *>(sidebarMenu->layout());
 
     // Add the new widget between `ViewJobListingsBtn` and `applyModeCheckbox`
-    QPushButton *viewJobListingsBtn = findChild<QPushButton *>("ViewJobListingsBtn");
+    QPushButton *ScraperConfigBtn = findChild<QPushButton *>("ScraperConfigBtn");
 
     // Insert the widget at the desired position
-    int insertIndex = sidebarLayout->indexOf(viewJobListingsBtn) + 1;
-    sidebarLayout->insertWidget(insertIndex, sidebarJobListWidget);
+    int insertIndex = sidebarLayout->indexOf(ScraperConfigBtn) + 1;
+    sidebarLayout->insertWidget(insertIndex, sidebarjoblistwidget);
+
+    connect(sidebarjoblistwidget, &SidebarJobListWidget::jobListingRequested, this, &MainWindow::createJobListingsUI);
 }
 
 void MainWindow::cleanUpJobListingsPage() {
@@ -59,6 +62,10 @@ void MainWindow::cleanUpJobListingsPage() {
 
 // Slot function to handle button click logic
 void MainWindow::onSidebarButtonClicked(QPushButton* clickedButton, const QList<QPushButton*>& buttons) {
+    if (joblistingsui != nullptr) {
+        delete joblistingsui;
+    }
+
     // Check if there was a previously disabled button
     if (previousButton != nullptr) {
         // Perform UI cleanup based on the previously disabled button
@@ -68,8 +75,6 @@ void MainWindow::onSidebarButtonClicked(QPushButton* clickedButton, const QList<
             delete seeallquestionsui;
         } else if (previousButton == ui->ScraperConfigBtn) {
             delete scraperconfigurationui;
-        } else if (previousButton == ui->ViewJobListingsBtn) {
-            delete joblistingsui;
         }
     }
 
@@ -180,7 +185,15 @@ void MainWindow::on_AnswerQuestionsBtn_clicked()
     ui->mainAreaContainer->layout()->addWidget(askquestionsui);
 }
 
+void MainWindow::createJobListingsUI()
+{
+    // onSidebarButtonClicked(nullptr, {ui->AnswerQuestionsBtn, ui->ScraperConfigBtn});
+    if (!joblistingsui) {
+        joblistingsui = new JobListingsUI(this, this->dbManager, sidebarjoblistwidget);
+        ui->mainAreaContainer->layout()->addWidget(joblistingsui);
+    }
+}
+
 void MainWindow::on_ViewJobListingsBtn_clicked(){
-    joblistingsui = new JobListingsUI(this, this->dbManager);
-    ui->mainAreaContainer->layout()->addWidget(joblistingsui);
+    createJobListingsUI();
 }

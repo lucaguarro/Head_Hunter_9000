@@ -11,9 +11,12 @@ class SidebarJobListWidget : public QWidget
 
 public:
     explicit SidebarJobListWidget(DatabaseManager *dbManager, QWidget *parent = nullptr);
+    const QList<Job>& getJobs() const; // Expose the job list
+    void selectJobByIndex(int index); // Select a job by index programmatically
 
 signals:
-    void jobSelected(int jobId); // Signal emitted when a job is clicked
+    void jobSelected(int index); // Signal emitted when a job is selected
+    void jobListingRequested();
 
 private slots:
     void handleItemClick(QListWidgetItem *item);
@@ -21,6 +24,7 @@ private slots:
 private:
     QListWidget *jobListWidget;
     DatabaseManager *dbManager;
+    QList<Job> jobList; // Store the job list
 
     void loadJobs();
 };

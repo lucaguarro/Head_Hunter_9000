@@ -2,35 +2,29 @@
 #define JOBLISTINGSUI_H
 
 #include <QWidget>
-#include <QList>
-#include "job.h"
-#include "starratingwidget.h" // Include the StarRatingWidget header
+#include "sidebarjoblistwidget.h"
 
-class DatabaseManager;
 class QLabel;
 class QPushButton;
-class QHBoxLayout;
-class QVBoxLayout;
-class QScrollArea; // Include QScrollArea
+class StarRatingWidget;
 
 class JobListingsUI : public QWidget
 {
     Q_OBJECT
+
 public:
-    explicit JobListingsUI(QWidget *parent = nullptr, DatabaseManager *dbManager = nullptr);
+    explicit JobListingsUI(QWidget *parent = nullptr, DatabaseManager *dbManager = nullptr, SidebarJobListWidget *sidebar = nullptr);
 
 private slots:
     void showPreviousJob();
     void showNextJob();
+    void displayCurrentJob();
     void updatePreferenceScore(int score);
+    void handleSidebarSelection(int index); // Handle job selection from sidebar
 
 private:
-    void setupUI();
-    void loadJobs();
-    void displayCurrentJob();
-
     DatabaseManager *dbManager;
-    QList<Job> jobList;
+    SidebarJobListWidget *sidebar;
     int currentIndex;
 
     QLabel *companyNameLabel;
@@ -38,11 +32,12 @@ private:
     QLabel *jobTitleLabel;
     QLabel *descriptionLabel;
     QLabel *createdAtLabel;
-    StarRatingWidget *starRatingWidget; // Use your custom StarRatingWidget
     QPushButton *prevButton;
     QPushButton *nextButton;
+    StarRatingWidget *starRatingWidget;
 
-    QScrollArea *descriptionScrollArea; // Scroll area for description
+    void setupUI();
+
 };
 
 #endif // JOBLISTINGSUI_H
