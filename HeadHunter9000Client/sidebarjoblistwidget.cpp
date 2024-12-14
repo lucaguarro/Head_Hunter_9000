@@ -51,7 +51,7 @@ void SidebarJobListWidget::loadJobs()
     }
 }
 
-const QList<Job>& SidebarJobListWidget::getJobs() const
+QList<Job>& SidebarJobListWidget::getJobs()
 {
     return jobList;
 }

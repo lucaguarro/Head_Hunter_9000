@@ -11,7 +11,7 @@ class StarRatingWidget : public QWidget
 public:
     explicit StarRatingWidget(QWidget *parent = nullptr);
 
-    void setRating(int rating);
+    void setRating(int rating, bool updateDB);
     int rating() const;
 
 signals:

@@ -43,8 +43,7 @@ void JobListingsUI::setupUI()
     // Initialize StarRatingWidget
     starRatingWidget = new StarRatingWidget(this);
     starRatingWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed); // Ensure proper sizing
-    connect(starRatingWidget, &StarRatingWidget::ratingChanged,
-            this, &JobListingsUI::updatePreferenceScore);
+    connect(starRatingWidget, &StarRatingWidget::ratingChanged, this, &JobListingsUI::updatePreferenceScore);
 
     // Initialize Navigation Buttons
     prevButton = new QPushButton("<", this);
@@ -95,7 +94,7 @@ void JobListingsUI::setupUI()
 
 void JobListingsUI::displayCurrentJob()
 {
-    const QList<Job> &jobList = sidebar->getJobs();
+    QList<Job> &jobList = sidebar->getJobs();
 
     if (jobList.isEmpty() || currentIndex < 0 || currentIndex >= jobList.size()) {
         companyNameLabel->setText("No job postings available.");
@@ -103,13 +102,13 @@ void JobListingsUI::displayCurrentJob()
         jobTitleLabel->clear();
         descriptionLabel->clear();
         createdAtLabel->clear();
-        starRatingWidget->setRating(0);
+        starRatingWidget->setRating(0, false);
         prevButton->setEnabled(false);
         nextButton->setEnabled(false);
         return;
     }
 
-    const Job &job = jobList.at(currentIndex);
+    Job &job = jobList[currentIndex];
 
 
     // Set Company Name
@@ -130,7 +129,7 @@ void JobListingsUI::displayCurrentJob()
     createdAtLabel->setText("<b>Posted:</b> " + job.createdAt.toHtmlEscaped());
 
     // Update StarRatingWidget
-    starRatingWidget->setRating(job.preferenceScore);
+    starRatingWidget->setRating(job.preferenceScore, false);
 
     // Update Navigation Buttons
     prevButton->setEnabled(currentIndex > 0);
@@ -163,7 +162,7 @@ void JobListingsUI::handleSidebarSelection(int index)
 
 void JobListingsUI::updatePreferenceScore(int score)
 {
-    const QList<Job> &jobList = sidebar->getJobs();
+    QList<Job> &jobList = sidebar->getJobs();
 
     if (jobList.isEmpty() || currentIndex < 0 || currentIndex >= jobList.size()) {
         qWarning() << "No job to update the preference score.";
@@ -171,8 +170,9 @@ void JobListingsUI::updatePreferenceScore(int score)
     }
 
     // Update the preference score in the database
-    const Job &job = jobList.at(currentIndex);
+    Job &job = jobList[currentIndex];
     dbManager->updateJobPreferenceScore(job.id, score);
+    job.preferenceScore = score;
 
     // Optionally, update the UI or provide feedback to the user
     qDebug() << "Updated preference score for job ID" << job.id << "to" << score;

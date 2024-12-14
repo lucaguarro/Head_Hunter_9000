@@ -13,12 +13,14 @@ StarRatingWidget::StarRatingWidget(QWidget *parent)
     setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed); // Fixed height
 }
 
-void StarRatingWidget::setRating(int rating)
+void StarRatingWidget::setRating(int rating, bool updateDB=true)
 {
     if (rating != m_rating && rating >= 0 && rating <= 5) {
         m_rating = rating;
         update(); // Trigger repaint
-        emit ratingChanged(m_rating);
+        if (updateDB){
+            emit ratingChanged(m_rating);
+        }
     }
 }
 
@@ -59,7 +61,7 @@ void StarRatingWidget::paintEvent(QPaintEvent *event)
 void StarRatingWidget::mouseReleaseEvent(QMouseEvent *event)
 {
     int starWidth = width() / 5;
-    int clickedStar = event->x() / starWidth + 1;
+    int clickedStar = static_cast<int>(event->position().x()) / starWidth + 1;
     if (clickedStar >= 1 && clickedStar <= 5) {
         setRating(clickedStar);
     }

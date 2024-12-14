@@ -11,7 +11,7 @@ class SidebarJobListWidget : public QWidget
 
 public:
     explicit SidebarJobListWidget(DatabaseManager *dbManager, QWidget *parent = nullptr);
-    const QList<Job>& getJobs() const; // Expose the job list
+    QList<Job>& getJobs(); // Expose the job list
     void selectJobByIndex(int index); // Select a job by index programmatically
 
 signals:
