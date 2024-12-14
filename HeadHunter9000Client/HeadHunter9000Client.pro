@@ -47,6 +47,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 DISTFILES += \
     assets/icons/arrow_left.svg \
     assets/icons/arrow_right.svg \
+    assets/icons/check-solid.svg \
     assets/icons/database.svg \
     assets/icons/person_raised_hand.svg \
     assets/icons/robot.svg \

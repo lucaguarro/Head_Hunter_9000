@@ -12,6 +12,7 @@ struct Job
     QString description;
     QString createdAt; // ISO date string
     int preferenceScore;
+    bool appSubmitted;
 };
 
 #endif // JOB_H

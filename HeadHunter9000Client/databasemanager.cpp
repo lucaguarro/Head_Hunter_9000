@@ -249,7 +249,7 @@ QList<Job> DatabaseManager::getJobs()
     QList<Job> jobList;
 
     QSqlQuery query;
-    QString sql = "SELECT id, companyname, location, jobtitle, description, createdat, preferencescore FROM job";
+    QString sql = "SELECT id, companyname, location, jobtitle, description, createdat, preferencescore, appsubmitted FROM job";
     if (query.exec(sql)) {
         while (query.next()) {
             Job job;
@@ -260,6 +260,7 @@ QList<Job> DatabaseManager::getJobs()
             job.description = query.value("description").toString();
             job.createdAt = query.value("createdat").toString();
             job.preferenceScore = query.value("preferencescore").toInt();
+            job.appSubmitted = query.value("appsubmitted").toBool();
             jobList.append(job);
         }
     } else {
@@ -268,6 +269,7 @@ QList<Job> DatabaseManager::getJobs()
 
     return jobList;
 }
+
 
 void DatabaseManager::updateJobPreferenceScore(int jobId, int newScore)
 {

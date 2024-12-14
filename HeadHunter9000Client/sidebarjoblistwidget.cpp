@@ -1,5 +1,6 @@
 #include "sidebarjoblistwidget.h"
 #include "jobpreviewwidget.h"
+#include "qboxlayout.h"
 #include <QListWidgetItem>
 #include <QDebug>
 
@@ -36,7 +37,7 @@ void SidebarJobListWidget::loadJobs()
         const Job &job = jobList[i];
 
         // Create a custom widget for each job preview
-        JobPreviewWidget *previewWidget = new JobPreviewWidget(job.jobTitle, job.companyName, this);
+        JobPreviewWidget *previewWidget = new JobPreviewWidget(job.jobTitle, job.companyName, job.appSubmitted, job.preferenceScore, this);
 
         // Create a QListWidgetItem and set its size
         QListWidgetItem *item = new QListWidgetItem(jobListWidget);
