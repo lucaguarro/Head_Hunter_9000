@@ -2,20 +2,22 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QPushButton>
-#include <QVBoxLayout>
-#include "askquestionsui.h"
-#include "databasemanager.h"
-#include "scraperconfigurationui.h"
-#include "seeallquestionsui.h"
-#include "processworker.h"
-#include "sidebarjoblistwidget.h"
-#include "joblistingsui.h"
+#include <QSettings>
+#include <QPointer>
+
+class DatabaseManager;
+class SidebarJobListWidget;
+class QPushButton;
+class ProcessWorker;
+class QThread;
+// Forward declarations of your UI widgets
+class JobListingsUI;
+class AskQuestionsUI;
+class SeeAllQuestionsUI;
+class ScraperConfigurationUI;
 
 QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-}
+namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
@@ -23,45 +25,38 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    JobListingsUI* joblistingsui;
-    void createJobListingsUI();
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
 private slots:
-    void on_AnswerQuestionsBtn_clicked();
-    void on_SeeAllQuestionsBtn_clicked();
-    void on_ViewJobListingsBtn_clicked();
+    void onSidebarButtonClicked(QPushButton* clickedButton, const QList<QPushButton*>& buttons);
     void on_ScraperConfigBtn_clicked();
+    void on_SeeAllQuestionsBtn_clicked();
+    void on_AnswerQuestionsBtn_clicked();
     void on_ExecuteBtn_clicked();
+    void onDatabasePathChanged();
+    void createJobListingsUI();
 
 private:
     Ui::MainWindow *ui;
-    AskQuestionsUI* askquestionsui;
-    SeeAllQuestionsUI* seeallquestionsui;
-    ScraperConfigurationUI* scraperconfigurationui;
-
-    SidebarJobListWidget* sidebarjoblistwidget;
-    QSettings* settings;
-
-    QPushButton* previousButton;
-
-    // Member for managing the database connection
     DatabaseManager *dbManager;
+    SidebarJobListWidget *sidebarjoblistwidget;
+    QSettings *settings;
 
+    // Threading bits
+    QThread *thread = nullptr;
+    ProcessWorker *worker = nullptr;
     bool isProcessRunning = false;
-    ProcessWorker* worker = nullptr;
-    QThread* thread = nullptr;
 
-    // Function to load and display questions from the database
-    void saveData();
-    void onSidebarButtonClicked(QPushButton *clickedButton, const QList<QPushButton *> &buttons);
-    void cleanUpJobListingsPage();
-    QVBoxLayout *setupScrollAreaAndSaveButton();
-    void loadQuestions(QVBoxLayout *contentLayout);
-    void addQuestionToPanel(QVBoxLayout *contentLayout, const QString &questionText, const QString &questionType, int questionId);
+    // Use ONE pointer to track the current widget in mainAreaContainer
+    QWidget *currentWidget = nullptr;
 
-    void onDatabasePathChanged();
+    // We still keep track of which sidebar button was previously clicked
+    QPushButton *previousButton;
+
+    // Utility function to set the main widget properly
+    void setMainWidget(QWidget *newWidget);
+
     void setExecutionStateUI();
 };
 
