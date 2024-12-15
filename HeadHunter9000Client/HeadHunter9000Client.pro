@@ -26,6 +26,7 @@ HEADERS += \
     askquestionsui.h \
     checkablecombobox.h \
     databasemanager.h \
+    elidedlabel.h \
     job.h \
     joblistingsui.h \
     jobpreviewwidget.h \

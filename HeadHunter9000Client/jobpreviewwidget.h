@@ -1,6 +1,7 @@
 #ifndef JOBPREVIEWWIDGET_H
 #define JOBPREVIEWWIDGET_H
 
+#include "elidedlabel.h"
 #include <QWidget>
 
 class QLabel;
@@ -16,8 +17,8 @@ public:
                               QWidget *parent = nullptr);
 
 private:
-    QLabel *jobTitleLabel;
-    QLabel *companyNameLabel;
+    ElidedLabel *jobTitleLabel;
+    ElidedLabel *companyNameLabel;
     QLabel *appliedIconLabel;  // icon in top-right
     QLabel *ratingIconLabel;   // icon in bottom-right
 };

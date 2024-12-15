@@ -14,15 +14,18 @@ JobPreviewWidget::JobPreviewWidget(const QString &jobTitle,
     : QWidget(parent)
 {
     // Create labels
-    jobTitleLabel = new QLabel(jobTitle, this);
+    jobTitleLabel = new ElidedLabel(jobTitle, this);
+    jobTitleLabel->setElideMode(Qt::ElideRight);
+
     jobTitleLabel->setStyleSheet("font-weight: bold; font-size: 14px; color: black;");
     // Ensure the label can elide (truncate) text if not enough space
     jobTitleLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     jobTitleLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     jobTitleLabel->setWordWrap(false);
-    jobTitleLabel->setTextElideMode(Qt::ElideRight);
 
-    companyNameLabel = new QLabel(companyName, this);
+    companyNameLabel = new ElidedLabel(companyName, this);
+    companyNameLabel->setElideMode(Qt::ElideRight);
+
     companyNameLabel->setStyleSheet("font-size: 12px; color: gray;");
     companyNameLabel->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     companyNameLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
