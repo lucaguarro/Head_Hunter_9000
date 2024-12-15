@@ -70,5 +70,11 @@ JobPreviewWidget::JobPreviewWidget(const QString &jobTitle,
     mainLayout->setContentsMargins(5, 5, 5, 5);
     mainLayout->setSpacing(2);
 
+    // make clicks go through the parent item so that the SidebarJobListWidget::handleItemClick event is triggered
+    jobTitleLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+    companyNameLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+    appliedIconLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+    ratingIconLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+
     setLayout(mainLayout);
 }
