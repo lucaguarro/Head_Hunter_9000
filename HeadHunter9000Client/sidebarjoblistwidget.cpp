@@ -17,6 +17,8 @@ SidebarJobListWidget::SidebarJobListWidget(DatabaseManager *dbManager, QWidget *
 
     // Connect Item Click Signal
     connect(jobListWidget, &QListWidget::itemClicked, this, &SidebarJobListWidget::handleItemClick);
+    connect(jobListWidget, &QListWidget::currentRowChanged, this, &SidebarJobListWidget::handleCurrentRowChanged);
+
 
     // Load Jobs from Database
     loadJobs();
@@ -27,6 +29,7 @@ SidebarJobListWidget::SidebarJobListWidget(DatabaseManager *dbManager, QWidget *
     layout->setContentsMargins(0, 0, 0, 0);
     setLayout(layout);
 }
+
 
 void SidebarJobListWidget::loadJobs()
 {
@@ -75,3 +78,16 @@ void SidebarJobListWidget::handleItemClick(QListWidgetItem *item)
     emit jobSelected(index);
 }
 
+void SidebarJobListWidget::handleCurrentRowChanged(int currentRow)
+{
+    // If a valid row is selected
+    if (currentRow >= 0 && currentRow < jobList.size()) {
+        // Retrieve the corresponding item
+        QListWidgetItem *item = jobListWidget->item(currentRow);
+        if (!item) return;
+
+        // Emit the same jobSelected signal
+        int index = item->data(Qt::UserRole).toInt();
+        emit jobSelected(index);
+    }
+}

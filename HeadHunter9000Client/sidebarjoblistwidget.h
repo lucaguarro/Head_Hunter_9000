@@ -20,6 +20,7 @@ signals:
 
 private slots:
     void handleItemClick(QListWidgetItem *item);
+    void handleCurrentRowChanged(int currentRow);
 
 private:
     QListWidget *jobListWidget;
