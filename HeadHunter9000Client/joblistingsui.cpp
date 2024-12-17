@@ -45,13 +45,6 @@ void JobListingsUI::setupUI()
     starRatingWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed); // Ensure proper sizing
     connect(starRatingWidget, &StarRatingWidget::ratingChanged, this, &JobListingsUI::updatePreferenceScore);
 
-    // Initialize Navigation Buttons
-    prevButton = new QPushButton("<", this);
-    connect(prevButton, &QPushButton::clicked, this, &JobListingsUI::showPreviousJob);
-
-    nextButton = new QPushButton(">", this);
-    connect(nextButton, &QPushButton::clicked, this, &JobListingsUI::showNextJob);
-
     // Create a Container Widget for Scroll Area
     QWidget *contentWidget = new QWidget(this);
     QVBoxLayout *contentLayout = new QVBoxLayout(contentWidget);
@@ -83,11 +76,7 @@ void JobListingsUI::setupUI()
     // Add the rating layout to the main layout
     mainLayout->addLayout(ratingLayout);
 
-    QHBoxLayout *buttonLayout = new QHBoxLayout();
-    buttonLayout->addWidget(prevButton);
-    buttonLayout->addWidget(nextButton);
-
-    mainLayout->addLayout(buttonLayout); // Add Navigation Buttons below StarRatingWidget
+    // mainLayout->addLayout(buttonLayout); // Add Navigation Buttons below StarRatingWidget
 
     setLayout(mainLayout);
 }
@@ -103,8 +92,6 @@ void JobListingsUI::displayCurrentJob()
         descriptionLabel->clear();
         createdAtLabel->clear();
         starRatingWidget->setRating(0, false);
-        prevButton->setEnabled(false);
-        nextButton->setEnabled(false);
         return;
     }
 
@@ -130,26 +117,6 @@ void JobListingsUI::displayCurrentJob()
 
     // Update StarRatingWidget
     starRatingWidget->setRating(job.preferenceScore, false);
-
-    // Update Navigation Buttons
-    prevButton->setEnabled(currentIndex > 0);
-    nextButton->setEnabled(currentIndex < jobList.size() - 1);
-}
-
-void JobListingsUI::showPreviousJob()
-{
-    if (currentIndex > 0) {
-        --currentIndex;
-        displayCurrentJob();
-    }
-}
-
-void JobListingsUI::showNextJob()
-{
-    if (currentIndex < sidebar->getJobs().size() - 1) {
-        ++currentIndex;
-        displayCurrentJob();
-    }
 }
 
 void JobListingsUI::handleSidebarSelection(int index)

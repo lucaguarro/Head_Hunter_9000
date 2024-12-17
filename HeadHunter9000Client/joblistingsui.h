@@ -16,8 +16,6 @@ public:
     explicit JobListingsUI(QWidget *parent = nullptr, DatabaseManager *dbManager = nullptr, SidebarJobListWidget *sidebar = nullptr);
 
 private slots:
-    void showPreviousJob();
-    void showNextJob();
     void displayCurrentJob();
     void updatePreferenceScore(int score);
     void handleSidebarSelection(int index); // Handle job selection from sidebar
@@ -32,8 +30,6 @@ private:
     QLabel *jobTitleLabel;
     QLabel *descriptionLabel;
     QLabel *createdAtLabel;
-    QPushButton *prevButton;
-    QPushButton *nextButton;
     StarRatingWidget *starRatingWidget;
 
     void setupUI();
