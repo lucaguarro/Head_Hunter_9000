@@ -12,6 +12,7 @@ SOURCES += \
     askquestionsui.cpp \
     checkablecombobox.cpp \
     databasemanager.cpp \
+    filtersortwidget.cpp \
     joblistingsui.cpp \
     jobpreviewwidget.cpp \
     main.cpp \
@@ -27,6 +28,7 @@ HEADERS += \
     checkablecombobox.h \
     databasemanager.h \
     elidedlabel.h \
+    filtersortwidget.h \
     job.h \
     joblistingsui.h \
     jobpreviewwidget.h \

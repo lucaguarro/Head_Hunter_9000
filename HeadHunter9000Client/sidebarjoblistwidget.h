@@ -1,9 +1,10 @@
-#ifndef SIDEBARJOBLISTWIDGET_H
-#define SIDEBARJOBLISTWIDGET_H
+#pragma once
 
 #include <QWidget>
 #include <QListWidget>
+#include <QDateTime>
 #include "databasemanager.h"
+#include "filtersortwidget.h"
 
 class SidebarJobListWidget : public QWidget
 {
@@ -11,23 +12,39 @@ class SidebarJobListWidget : public QWidget
 
 public:
     explicit SidebarJobListWidget(DatabaseManager *dbManager, QWidget *parent = nullptr);
-    QList<Job>& getJobs(); // Expose the job list
-    void selectJobByIndex(int index); // Select a job by index programmatically
+
+    QList<Job>& getJobs();
+    void selectJobByIndex(int index);
 
 signals:
-    void jobSelected(int index); // Signal emitted when a job is selected
+    void jobSelected(int index);
     void jobListingRequested();
 
 private slots:
     void handleItemClick(QListWidgetItem *item);
     void handleCurrentRowChanged(int currentRow);
 
+    // Called by FilterSortWidget signals
+    void applyAppliedFilter(int appliedMode);
+    void applyRatingFilter(bool hasRating);
+    void applyDateCutoff(const QDateTime &cutoffDate);
+    void applySort(const QString &sortField, bool ascending);
+
 private:
-    QListWidget *jobListWidget;
-    DatabaseManager *dbManager;
-    QList<Job> jobList; // Store the job list
-
     void loadJobs();
-};
+    void populateList(const QList<Job> &jobs);
+    void showFilterSortPopup();
 
-#endif // SIDEBARJOBLISTWIDGET_H
+    DatabaseManager *dbManager;
+    QList<Job> jobList;      // Original list from DB
+    QList<Job> filteredJobs; // After filtering and sorting
+
+    QListWidget *jobListWidget;
+    QPushButton *filterSortButton;
+    FilterSortWidget *filterSortWidget;
+
+    // We store the currently chosen filter states:
+    int appliedMode;        // 0=All,1=AppliedOnly,2=NotApplied
+    bool ratingFilterOn;    // Show only jobs with rating?
+    QDateTime dateCutoff;   // Only show jobs >= cutoff
+};
