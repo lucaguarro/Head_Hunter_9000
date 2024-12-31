@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui svg
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets sql
 
@@ -12,20 +12,32 @@ SOURCES += \
     askquestionsui.cpp \
     checkablecombobox.cpp \
     databasemanager.cpp \
+    filtersortwidget.cpp \
+    joblistingsui.cpp \
+    jobpreviewwidget.cpp \
     main.cpp \
     mainwindow.cpp \
     processworker.cpp \
     scraperconfigurationui.cpp \
-    seeallquestionsui.cpp
+    seeallquestionsui.cpp \
+    sidebarjoblistwidget.cpp \
+    starratingwidget.cpp
 
 HEADERS += \
     askquestionsui.h \
     checkablecombobox.h \
     databasemanager.h \
+    elidedlabel.h \
+    filtersortwidget.h \
+    job.h \
+    joblistingsui.h \
+    jobpreviewwidget.h \
     mainwindow.h \
     processworker.h \
     scraperconfigurationui.h \
-    seeallquestionsui.h
+    seeallquestionsui.h \
+    sidebarjoblistwidget.h \
+    starratingwidget.h
 
 FORMS += \
     mainwindow.ui
@@ -38,9 +50,12 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 DISTFILES += \
     assets/icons/arrow_left.svg \
     assets/icons/arrow_right.svg \
+    assets/icons/check-solid.svg \
     assets/icons/database.svg \
     assets/icons/person_raised_hand.svg \
     assets/icons/robot.svg \
+    assets/icons/star-regular.svg \
+    assets/icons/star-solid.svg \
     assets/icons/work.svg
 
 RESOURCES += \

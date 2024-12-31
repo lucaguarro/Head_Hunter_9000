@@ -1,108 +1,181 @@
 #include "mainwindow.h"
-#include "processworker.h"
 #include "ui_mainwindow.h"
+
+// UI classes
+#include "processworker.h"
+#include "sidebarjoblistwidget.h"
+#include "joblistingsui.h"
+#include "askquestionsui.h"
+#include "seeallquestionsui.h"
+#include "scraperconfigurationui.h"
+
 #include <QDebug>
 #include <QProcess>
 #include <QThread>
 #include <QVBoxLayout>
+#include <QStandardPaths>
+#include <QDir>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , dbManager(nullptr)
+    , sidebarjoblistwidget(nullptr)
+    , settings(nullptr)
+    , thread(nullptr)
+    , worker(nullptr)
+    , isProcessRunning(false)
+    , currentWidget(nullptr)
     , previousButton(nullptr)
 {
     ui->setupUi(this);
 
     // Determine the configuration file path
     QString configFilePath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/config.ini";
+    QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)); // Ensure dir exists
 
-    // Ensure the directory exists
-    QDir().mkpath(QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
-
-    // Initialize QSettings with the config file path
+    // Initialize QSettings and DatabaseManager
     settings = new QSettings(configFilePath, QSettings::IniFormat, this);
-
-    // Initialize the database manager with the settings instance
     dbManager = new DatabaseManager(settings);
 
-    // SidebarMenu is at index 0, scrollArea is at index 1 in the splitter
-    ui->splitter->setStretchFactor(0, 0);  // SidebarMenu gets no stretch (fixed size)
-    ui->splitter->setStretchFactor(1, 1);  // scrollArea stretches to fill the remaining space
-    ui->splitter->setSizes({200,1});
+    // Configure splitter
+    ui->splitter->setStretchFactor(0, 0); // Sidebar fixed
+    ui->splitter->setStretchFactor(1, 1); // scrollArea stretches
+    ui->splitter->setSizes({200, 1});
 
-    QList<QPushButton*> sidebar_buttons = {ui->AnswerQuestionsBtn, ui->ScraperConfigBtn, ui->SeeAllQuestionsBtn, ui->JobSearchCriteriaBtn};
+    // Collect relevant sidebar buttons
+    QList<QPushButton*> sidebar_buttons = {
+        ui->AnswerQuestionsBtn,
+        ui->ScraperConfigBtn,
+        ui->SeeAllQuestionsBtn
+    };
     for (auto button : sidebar_buttons) {
         connect(button, &QPushButton::clicked, this, [=]() {
             onSidebarButtonClicked(button, sidebar_buttons);
         });
     }
+
+    // Create the sidebar job list widget
+    sidebarjoblistwidget = new SidebarJobListWidget(dbManager, this);
+
+    // Insert sidebarjoblistwidget below ScraperConfigBtn in the sidebar
+    QWidget *sidebarMenu = findChild<QWidget *>("SidebarMenu");
+    QVBoxLayout *sidebarLayout = qobject_cast<QVBoxLayout *>(sidebarMenu->layout());
+    QPushButton *ScraperConfigBtn = findChild<QPushButton *>("ScraperConfigBtn");
+    int insertIndex = sidebarLayout->indexOf(ScraperConfigBtn) + 1;
+    sidebarLayout->insertWidget(insertIndex, sidebarjoblistwidget);
+
+    // Connect the jobListingRequested signal
+    connect(sidebarjoblistwidget, &SidebarJobListWidget::jobListingRequested, this, &MainWindow::createJobListingsUI);
 }
 
+MainWindow::~MainWindow()
+{
+    // Delete current widget if it exists
+    if (currentWidget) {
+        delete currentWidget;
+        currentWidget = nullptr;
+    }
 
-void MainWindow::cleanUpScraperConfigPage() {
-    delete scraperconfigurationui;
+    delete ui;
+    delete dbManager;
+    // All children of MainWindow, including sidebarjoblistwidget, are automatically deleted
 }
 
-void MainWindow::cleanUpJobSearchCriteriaPage() {
-    qDebug() << "Ayo4";
+//---------------------------------------------------------------------------------
+// Utility function: Replaces whatever is in mainAreaContainer with newWidget
+//---------------------------------------------------------------------------------
+void MainWindow::setMainWidget(QWidget *newWidget)
+{
+    if (!ui->mainAreaContainer->layout()) {
+        // If mainAreaContainer has no layout yet, create one
+        QVBoxLayout *vLayout = new QVBoxLayout(ui->mainAreaContainer);
+        ui->mainAreaContainer->setLayout(vLayout);
+    }
+
+    QLayout *layout = ui->mainAreaContainer->layout();
+
+    // Remove and delete the old widget if it exists
+    if (currentWidget) {
+        layout->removeWidget(currentWidget);
+        delete currentWidget;
+        currentWidget = nullptr;
+    }
+
+    // Add the new widget
+    if (newWidget) {
+        layout->addWidget(newWidget);
+        currentWidget = newWidget;
+    }
 }
 
-// Slot function to handle button click logic
-void MainWindow::onSidebarButtonClicked(QPushButton* clickedButton, const QList<QPushButton*>& buttons) {
-    // Check if there was a previously disabled button
+//---------------------------------------------------------------------------------
+// Sidebar button click handling
+//---------------------------------------------------------------------------------
+void MainWindow::onSidebarButtonClicked(QPushButton *clickedButton, const QList<QPushButton *> &buttons)
+{
+    // If there was a previously disabled button, re-enable it
     if (previousButton != nullptr) {
-        // Perform UI cleanup based on the previously disabled button
-        if (previousButton == ui->AnswerQuestionsBtn) {
-            delete askquestionsui;
-        } else if (previousButton == ui->SeeAllQuestionsBtn) {
-            delete seeallquestionsui;
-        } else if (previousButton == ui->ScraperConfigBtn) {
-            cleanUpScraperConfigPage();
-        } else if (previousButton == ui->JobSearchCriteriaBtn) {
-            cleanUpJobSearchCriteriaPage();
-        }
+        previousButton->setEnabled(true);
     }
 
-    // Loop through the buttons and enable/disable them appropriately
-    for (auto button : buttons) {
-        if (button == clickedButton) {
-            button->setDisabled(true);  // Disable the clicked button
-        } else {
-            button->setEnabled(true);  // Enable all the other buttons
-        }
-    }
-
-    // Store the clicked button as the newly disabled button
+    // Disable the newly clicked button
+    clickedButton->setEnabled(false);
     previousButton = clickedButton;
 }
 
-MainWindow::~MainWindow() {
-    delete ui;
-    delete dbManager;
-}
-
+//---------------------------------------------------------------------------------
+// SCRAPER CONFIG
+//---------------------------------------------------------------------------------
 void MainWindow::on_ScraperConfigBtn_clicked()
 {
-    scraperconfigurationui = new ScraperConfigurationUI(this, settings);
+    ScraperConfigurationUI *scraperconfigurationui = new ScraperConfigurationUI(this, settings);
     connect(scraperconfigurationui, &ScraperConfigurationUI::databasePathChanged, this, &MainWindow::onDatabasePathChanged);
-    ui->mainAreaContainer->layout()->addWidget(scraperconfigurationui);
+    setMainWidget(scraperconfigurationui);
 }
 
-void MainWindow::onDatabasePathChanged() {
+void MainWindow::onDatabasePathChanged()
+{
     dbManager->setDatabasePath();
 }
 
-void MainWindow::setExecutionStateUI() {
-    if (isProcessRunning){
-        ui->ExecuteBtn->setText("Stop Execution");
-        ui->applyModeCheckbox->setDisabled(true);
-    } else {
-        ui->ExecuteBtn->setText("Execute");
-        ui->applyModeCheckbox->setDisabled(false);
+//---------------------------------------------------------------------------------
+// VIEW ALL QUESTIONS
+//---------------------------------------------------------------------------------
+void MainWindow::on_SeeAllQuestionsBtn_clicked()
+{
+    SeeAllQuestionsUI *seeallquestionsui = new SeeAllQuestionsUI(this, dbManager);
+    setMainWidget(seeallquestionsui);
+}
+
+//---------------------------------------------------------------------------------
+// ANSWER QUESTIONS
+//---------------------------------------------------------------------------------
+void MainWindow::on_AnswerQuestionsBtn_clicked()
+{
+    AskQuestionsUI *askquestionsui = new AskQuestionsUI(this, dbManager);
+    setMainWidget(askquestionsui);
+}
+
+void MainWindow::createJobListingsUI()
+{
+    // If we call createJobListingsUI() repeatedly,
+    // a new widget will be created each time. That's okay
+    // as long as we setMainWidget() and delete the old one.
+    JobListingsUI *joblistingsui = new JobListingsUI(this, dbManager, sidebarjoblistwidget);
+    setMainWidget(joblistingsui);
+
+    if (previousButton != nullptr) {
+        previousButton->setEnabled(true);
+        previousButton = nullptr;
     }
 }
 
-void MainWindow::on_ExecuteBtn_clicked() {
+//---------------------------------------------------------------------------------
+// PROCESS EXECUTION
+//---------------------------------------------------------------------------------
+void MainWindow::on_ExecuteBtn_clicked()
+{
     if (!isProcessRunning) {
         // Start the process
         QString scriptPath = "/home/luca/Documents/Projects/Head_Hunter_9000/run_scraper.sh";
@@ -110,7 +183,6 @@ void MainWindow::on_ExecuteBtn_clicked() {
 
         thread = new QThread;
         worker = new ProcessWorker("/bin/bash", QStringList() << scriptPath << configPath << QString::number(ui->applyModeCheckbox->isChecked()));
-
         worker->moveToThread(thread);
 
         connect(thread, &QThread::started, worker, &ProcessWorker::execute);
@@ -119,14 +191,13 @@ void MainWindow::on_ExecuteBtn_clicked() {
             if (!errorOutput.isEmpty()) {
                 qDebug() << "Script Error:" << errorOutput;
             }
-            // Process finished, reset state
+            // Process finished
             isProcessRunning = false;
             setExecutionStateUI();
-
         });
         connect(worker, &ProcessWorker::processError, this, [this](const QString& errorMessage) {
             qDebug() << errorMessage;
-            // Process error, reset state
+            // Process error
             isProcessRunning = false;
             setExecutionStateUI();
         });
@@ -135,7 +206,7 @@ void MainWindow::on_ExecuteBtn_clicked() {
         connect(worker, &ProcessWorker::processFinished, worker, &ProcessWorker::deleteLater);
         connect(thread, &QThread::finished, thread, &QThread::deleteLater);
 
-        // Reset worker and thread pointers when thread finishes
+        // Reset worker/thread pointers after finishing
         connect(thread, &QThread::finished, this, [this]() {
             worker = nullptr;
             thread = nullptr;
@@ -143,29 +214,26 @@ void MainWindow::on_ExecuteBtn_clicked() {
 
         isProcessRunning = true;
         setExecutionStateUI();
-
         thread->start();
-
     } else {
         // Stop the process
         if (worker) {
-            // Emit signal to stop the process
             QMetaObject::invokeMethod(worker, "stop", Qt::QueuedConnection);
         }
-        // The state will be reset when the process finishes
+        // The state will be reset once the process finishes
     }
 }
 
-
-void MainWindow::on_SeeAllQuestionsBtn_clicked()
+//---------------------------------------------------------------------------------
+// MISC: UI Changes
+//---------------------------------------------------------------------------------
+void MainWindow::setExecutionStateUI()
 {
-    seeallquestionsui = new SeeAllQuestionsUI(this, this->dbManager);
-    ui->mainAreaContainer->layout()->addWidget(seeallquestionsui);
-}
-
-
-void MainWindow::on_AnswerQuestionsBtn_clicked()
-{
-    askquestionsui = new AskQuestionsUI(this, this->dbManager);
-    ui->mainAreaContainer->layout()->addWidget(askquestionsui);
+    if (isProcessRunning) {
+        ui->ExecuteBtn->setText("Stop Execution");
+        ui->applyModeCheckbox->setDisabled(true);
+    } else {
+        ui->ExecuteBtn->setText("Execute");
+        ui->applyModeCheckbox->setDisabled(false);
+    }
 }

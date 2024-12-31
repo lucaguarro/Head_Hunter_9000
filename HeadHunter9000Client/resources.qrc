@@ -6,5 +6,8 @@
         <file>assets/icons/person_raised_hand.svg</file>
         <file>assets/icons/work.svg</file>
         <file>assets/icons/robot.svg</file>
+        <file>assets/icons/star-regular.svg</file>
+        <file>assets/icons/star-solid.svg</file>
+        <file>assets/icons/check-solid.svg</file>
     </qresource>
 </RCC>

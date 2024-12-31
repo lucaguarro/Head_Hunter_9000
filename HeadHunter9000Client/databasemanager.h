@@ -5,6 +5,8 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QSettings>
+#include <QList>
+#include "job.h"
 
 class DatabaseManager {
 public:
@@ -22,6 +24,9 @@ public:
     QString fetchAnswerForQuestion(int questionId, const QString &questionType);
     QSqlQuery fetchQuestions(bool excludeAnswered);
     void setDatabasePath();
+
+    QList<Job> getJobs();
+    void updateJobPreferenceScore(int jobId, int newScore);
 private:
     QString databasePath;
     QSqlDatabase db;

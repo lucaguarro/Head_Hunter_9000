@@ -244,3 +244,40 @@ QString DatabaseManager::fetchAnswerForQuestion(int questionId, const QString& q
     return answer;
 }
 
+QList<Job> DatabaseManager::getJobs()
+{
+    QList<Job> jobList;
+
+    QSqlQuery query;
+    QString sql = "SELECT id, companyname, location, jobtitle, description, createdat, preferencescore, appsubmitted FROM job";
+    if (query.exec(sql)) {
+        while (query.next()) {
+            Job job;
+            job.id = query.value("id").toInt();
+            job.companyName = query.value("companyname").toString();
+            job.location = query.value("location").toString();
+            job.jobTitle = query.value("jobtitle").toString();
+            job.description = query.value("description").toString();
+            job.createdAt = query.value("createdat").toString();
+            job.preferenceScore = query.value("preferencescore").toInt();
+            job.appSubmitted = query.value("appsubmitted").toBool();
+            jobList.append(job);
+        }
+    } else {
+        qDebug() << "Database error:" << query.lastError().text();
+    }
+
+    return jobList;
+}
+
+
+void DatabaseManager::updateJobPreferenceScore(int jobId, int newScore)
+{
+    QSqlQuery query;
+    query.prepare("UPDATE job SET preferencescore = :score WHERE id = :id");
+    query.bindValue(":score", newScore);
+    query.bindValue(":id", jobId);
+    if (!query.exec()) {
+        qDebug() << "Database error:" << query.lastError().text();
+    }
+}
