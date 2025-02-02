@@ -41,6 +41,8 @@ private:
     void createScraperGroup();
     void createSearchFiltersGroup();
     void createDatabaseGroup();
+    void createResumeCoverLetterGroup();
+    void testOllamaConnection();
 
     // Configuration file path
     QString configFilePath;
@@ -65,6 +67,20 @@ private:
     QLineEdit *locationLineEdit;
 
     QLineEdit *dbFilePathLineEdit;
+
+    // "Resume / Cover Letter" UI
+    QGroupBox *resumeCoverLetterGroup;
+    QPushButton *openLLMConfigButton;
+
+    QLineEdit *ollamaEndpointLineEdit;
+    QComboBox *modelComboBox;
+    QPushButton *testConnectionButton;
+
+    QCheckBox *generateResumeCheckBox;
+    QComboBox *resumeTemplateComboBox;
+
+    QCheckBox *generateCoverLetterCheckBox;
+    QComboBox *coverLetterTemplateComboBox;
 
     // Layouts
     QVBoxLayout *mainLayout;

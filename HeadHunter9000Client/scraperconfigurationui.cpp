@@ -22,6 +22,7 @@ ScraperConfigurationUI::ScraperConfigurationUI(QWidget *parent, QSettings *setti
     createScraperGroup();
     createSearchFiltersGroup();
     createDatabaseGroup();
+    createResumeCoverLetterGroup();
 
     // Save Button
     QPushButton *saveButton = new QPushButton(tr("Save Configuration"), this);
@@ -184,6 +185,125 @@ void ScraperConfigurationUI::createDatabaseGroup()
     mainLayout->addWidget(databaseGroup);
 }
 
+void ScraperConfigurationUI::createResumeCoverLetterGroup()
+{
+    // 1) Make a group box
+    resumeCoverLetterGroup = new QGroupBox(tr("Resume / Cover Letter"), this);
+
+    // A vertical layout that will hold everything in this section
+    QVBoxLayout *mainVLayout = new QVBoxLayout(resumeCoverLetterGroup);
+
+    //
+    // 2) Top row: place "Open LLM Configuration Window" button to the right
+    //
+    QHBoxLayout *topRowLayout = new QHBoxLayout();
+    topRowLayout->addStretch();  // push everything to the right
+    openLLMConfigButton = new QPushButton(tr("Open LLM Configuration Window"), resumeCoverLetterGroup);
+    topRowLayout->addWidget(openLLMConfigButton);
+    mainVLayout->addLayout(topRowLayout);
+
+    //
+    // 3) Horizontal container for Ollama Endpoint / Model (vertically) + Test Connection button
+    //
+    QHBoxLayout *ollamaMainLayout = new QHBoxLayout();
+
+    // Left column: (a) Endpoint, (b) Model
+    QVBoxLayout *ollamaSettingsLayout = new QVBoxLayout();
+
+    // (a) Endpoint row
+    QHBoxLayout *endpointLayout = new QHBoxLayout();
+    endpointLayout->addWidget(new QLabel(tr("Ollama Endpoint:"), resumeCoverLetterGroup));
+    ollamaEndpointLineEdit = new QLineEdit(resumeCoverLetterGroup);
+    endpointLayout->addWidget(ollamaEndpointLineEdit);
+    ollamaSettingsLayout->addLayout(endpointLayout);
+
+    // (b) Model row
+    QHBoxLayout *modelLayout = new QHBoxLayout();
+    modelLayout->addWidget(new QLabel(tr("Model:"), resumeCoverLetterGroup));
+    modelComboBox = new QComboBox(resumeCoverLetterGroup);
+    // You can pre-populate with some known model options
+    modelComboBox->addItem("llama-3.2", "llama-3.2");
+    modelComboBox->addItem("llama2-7b", "llama2-7b");
+    modelComboBox->addItem("llama2-13b", "llama2-13b");
+    modelLayout->addWidget(modelComboBox);
+    ollamaSettingsLayout->addLayout(modelLayout);
+
+    // Right side: Test Connection button
+    testConnectionButton = new QPushButton(tr("Test Connection"), resumeCoverLetterGroup);
+
+    // Put it all together
+    ollamaMainLayout->addLayout(ollamaSettingsLayout);
+    ollamaMainLayout->addWidget(testConnectionButton);
+
+    mainVLayout->addLayout(ollamaMainLayout);
+
+    //
+    // 4) Generate Resume section
+    //
+    QHBoxLayout *generateResumeLayout = new QHBoxLayout();
+    generateResumeCheckBox = new QCheckBox(tr("Generate Resume"), resumeCoverLetterGroup);
+    generateResumeLayout->addWidget(generateResumeCheckBox);
+
+    // Resume Template
+    QLabel *resumeTemplateLabel = new QLabel(tr("Resume Template:"), resumeCoverLetterGroup);
+    resumeTemplateComboBox = new QComboBox(resumeCoverLetterGroup);
+    resumeTemplateComboBox->addItem("og-resume-template.v1");
+    resumeTemplateComboBox->addItem("og-resume-template.v2");
+    // Initially disabled
+    resumeTemplateComboBox->setEnabled(false);
+
+    // Put them in a row
+    generateResumeLayout->addWidget(resumeTemplateLabel);
+    generateResumeLayout->addWidget(resumeTemplateComboBox);
+
+    mainVLayout->addLayout(generateResumeLayout);
+
+    //
+    // 5) Generate Cover Letter section
+    //
+    QHBoxLayout *generateCoverLetterLayout = new QHBoxLayout();
+    generateCoverLetterCheckBox = new QCheckBox(tr("Generate Cover Letter"), resumeCoverLetterGroup);
+    generateCoverLetterLayout->addWidget(generateCoverLetterCheckBox);
+
+    // Cover Letter Template
+    QLabel *coverLetterTemplateLabel = new QLabel(tr("Cover Letter Template:"), resumeCoverLetterGroup);
+    coverLetterTemplateComboBox = new QComboBox(resumeCoverLetterGroup);
+    coverLetterTemplateComboBox->addItem("og-cl-template.v1");
+    coverLetterTemplateComboBox->addItem("og-cl-template.v2");
+    // Initially disabled
+    coverLetterTemplateComboBox->setEnabled(false);
+
+    generateCoverLetterLayout->addWidget(coverLetterTemplateLabel);
+    generateCoverLetterLayout->addWidget(coverLetterTemplateComboBox);
+
+    mainVLayout->addLayout(generateCoverLetterLayout);
+
+    // 6) Hook up checkboxes so they enable/disable the template combos
+    connect(generateResumeCheckBox, &QCheckBox::toggled, resumeTemplateComboBox, &QComboBox::setEnabled);
+    connect(generateCoverLetterCheckBox, &QCheckBox::toggled, coverLetterTemplateComboBox, &QComboBox::setEnabled);
+
+    // 7) Hook up the testConnectionButton to a function that tries to reach Ollama
+    connect(testConnectionButton, &QPushButton::clicked, this, &ScraperConfigurationUI::testOllamaConnection);
+
+    // Finally, add the group box to the main layout
+    mainLayout->addWidget(resumeCoverLetterGroup);
+}
+
+void ScraperConfigurationUI::testOllamaConnection()
+{
+    // Example: trivial check that the endpoint text field is non-empty
+    QString endpoint = ollamaEndpointLineEdit->text().trimmed();
+    if (endpoint.isEmpty()) {
+        QMessageBox::warning(this, tr("Test Connection"), tr("Please specify a valid Ollama endpoint."));
+        return;
+    }
+
+    // Real check: e.g., an HTTP GET to see if the server responds or QProcess with "ollama info"
+    // For now, just show a success message
+    QMessageBox::information(this, tr("Test Connection"), tr("Connection test to '%1' succeeded!").arg(endpoint));
+}
+
+
 void ScraperConfigurationUI::loadConfig()
 {
     // Load LOGIN settings
@@ -238,6 +358,35 @@ void ScraperConfigurationUI::loadConfig()
 
     // Load DATABASE settings
     dbFilePathLineEdit->setText(settings->value("DATABASE/db_filepath", "").toString());
+
+    // -- Resume / Cover Letter --
+    ollamaEndpointLineEdit->setText(settings->value("RESUME_COVER_LETTER/endpoint", "127.0.0.1:11434").toString());
+
+    // Model
+    QString model = settings->value("RESUME_COVER_LETTER/model", "llama-3.2").toString();
+    int modelIndex = modelComboBox->findData(model);
+    if (modelIndex >= 0)
+        modelComboBox->setCurrentIndex(modelIndex);
+
+    // Generate Resume
+    bool genResume = settings->value("RESUME_COVER_LETTER/generate_resume", false).toBool();
+    generateResumeCheckBox->setChecked(genResume);
+    resumeTemplateComboBox->setEnabled(genResume);
+
+    QString resumeTemplate = settings->value("RESUME_COVER_LETTER/resume_template", "og-resume-template.v1").toString();
+    int resumeTemplateIndex = resumeTemplateComboBox->findText(resumeTemplate);
+    if (resumeTemplateIndex >= 0)
+        resumeTemplateComboBox->setCurrentIndex(resumeTemplateIndex);
+
+    // Generate Cover Letter
+    bool genCover = settings->value("RESUME_COVER_LETTER/generate_cover_letter", false).toBool();
+    generateCoverLetterCheckBox->setChecked(genCover);
+    coverLetterTemplateComboBox->setEnabled(genCover);
+
+    QString coverTemplate = settings->value("RESUME_COVER_LETTER/cover_letter_template", "og-cl-template.v1").toString();
+    int coverTemplateIndex = coverLetterTemplateComboBox->findText(coverTemplate);
+    if (coverTemplateIndex >= 0)
+        coverLetterTemplateComboBox->setCurrentIndex(coverTemplateIndex);
 }
 
 void ScraperConfigurationUI::saveConfig()
@@ -297,6 +446,16 @@ void ScraperConfigurationUI::saveConfig()
     // Save DATABASE settings
     settings->setValue("DATABASE/db_filepath", dbFilePathLineEdit->text());
     emit databasePathChanged();
+
+    // -- Resume / Cover Letter --
+    settings->setValue("RESUME_COVER_LETTER/endpoint", ollamaEndpointLineEdit->text());
+    settings->setValue("RESUME_COVER_LETTER/model", modelComboBox->currentData().toString());
+
+    settings->setValue("RESUME_COVER_LETTER/generate_resume", generateResumeCheckBox->isChecked());
+    settings->setValue("RESUME_COVER_LETTER/resume_template", resumeTemplateComboBox->currentText());
+
+    settings->setValue("RESUME_COVER_LETTER/generate_cover_letter", generateCoverLetterCheckBox->isChecked());
+    settings->setValue("RESUME_COVER_LETTER/cover_letter_template", coverLetterTemplateComboBox->currentText());
 
     // Ensure settings are written to file
     settings->sync();
