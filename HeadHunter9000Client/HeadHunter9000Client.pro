@@ -25,6 +25,7 @@ SOURCES += \
 
 HEADERS += \
     askquestionsui.h \
+    buttongroupbox.h \
     checkablecombobox.h \
     databasemanager.h \
     elidedlabel.h \

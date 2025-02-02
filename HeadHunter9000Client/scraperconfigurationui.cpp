@@ -1,4 +1,5 @@
 #include "scraperconfigurationui.h"
+#include "buttongroupbox.h"
 
 // Include necessary Qt modules
 #include <QFile>
@@ -187,87 +188,74 @@ void ScraperConfigurationUI::createDatabaseGroup()
 
 void ScraperConfigurationUI::createResumeCoverLetterGroup()
 {
-    // 1) Make a group box
-    resumeCoverLetterGroup = new QGroupBox(tr("Resume / Cover Letter"), this);
+    //
+    // 1) Create a ButtonGroupBox instead of QGroupBox
+    //
+    ButtonGroupBox *resumeCoverLetterBox = new ButtonGroupBox(tr("Resume / Cover Letter"), this);
+    resumeCoverLetterBox->setButtonText(tr("Open LLM Configuration Window"));
 
-    // A vertical layout that will hold everything in this section
-    QVBoxLayout *mainVLayout = new QVBoxLayout(resumeCoverLetterGroup);
+    // We'll need the content layout to add internal widgets
+    QVBoxLayout *contentLayout = resumeCoverLetterBox->contentLayout();
 
     //
-    // 2) Top row: place "Open LLM Configuration Window" button to the right
+    // 2) First row: Ollama Endpoint + Test Connection
     //
-    QHBoxLayout *topRowLayout = new QHBoxLayout();
-    topRowLayout->addStretch();  // push everything to the right
-    openLLMConfigButton = new QPushButton(tr("Open LLM Configuration Window"), resumeCoverLetterGroup);
-    topRowLayout->addWidget(openLLMConfigButton);
-    mainVLayout->addLayout(topRowLayout);
-
-    //
-    // 3) Horizontal container for Ollama Endpoint / Model (vertically) + Test Connection button
-    //
-    QHBoxLayout *ollamaMainLayout = new QHBoxLayout();
-
-    // Left column: (a) Endpoint, (b) Model
-    QVBoxLayout *ollamaSettingsLayout = new QVBoxLayout();
-
-    // (a) Endpoint row
     QHBoxLayout *endpointLayout = new QHBoxLayout();
-    endpointLayout->addWidget(new QLabel(tr("Ollama Endpoint:"), resumeCoverLetterGroup));
-    ollamaEndpointLineEdit = new QLineEdit(resumeCoverLetterGroup);
+    QLabel *endpointLabel = new QLabel(tr("Ollama Endpoint:"), this);
+    ollamaEndpointLineEdit = new QLineEdit(this);
+    QPushButton *testConnectionButton = new QPushButton(tr("Test Connection"), this);
+
+    endpointLayout->addWidget(endpointLabel);
     endpointLayout->addWidget(ollamaEndpointLineEdit);
-    ollamaSettingsLayout->addLayout(endpointLayout);
+    endpointLayout->addWidget(testConnectionButton);
 
-    // (b) Model row
+    contentLayout->addLayout(endpointLayout);
+
+    //
+    // 3) Second row: Model selection
+    //
     QHBoxLayout *modelLayout = new QHBoxLayout();
-    modelLayout->addWidget(new QLabel(tr("Model:"), resumeCoverLetterGroup));
-    modelComboBox = new QComboBox(resumeCoverLetterGroup);
-    // You can pre-populate with some known model options
-    modelComboBox->addItem("llama-3.2", "llama-3.2");
-    modelComboBox->addItem("llama2-7b", "llama2-7b");
-    modelComboBox->addItem("llama2-13b", "llama2-13b");
+    modelLayout->addWidget(new QLabel(tr("Model:"), this));
+
+    modelComboBox = new QComboBox(this);
+    modelComboBox->addItem("llama-3.2",    "llama-3.2");
+    modelComboBox->addItem("llama2-7b",   "llama2-7b");
+    modelComboBox->addItem("llama2-13b",  "llama2-13b");
+
     modelLayout->addWidget(modelComboBox);
-    ollamaSettingsLayout->addLayout(modelLayout);
 
-    // Right side: Test Connection button
-    testConnectionButton = new QPushButton(tr("Test Connection"), resumeCoverLetterGroup);
-
-    // Put it all together
-    ollamaMainLayout->addLayout(ollamaSettingsLayout);
-    ollamaMainLayout->addWidget(testConnectionButton);
-
-    mainVLayout->addLayout(ollamaMainLayout);
+    contentLayout->addLayout(modelLayout);
 
     //
     // 4) Generate Resume section
     //
     QHBoxLayout *generateResumeLayout = new QHBoxLayout();
-    generateResumeCheckBox = new QCheckBox(tr("Generate Resume"), resumeCoverLetterGroup);
+
+    generateResumeCheckBox = new QCheckBox(tr("Generate Resume"), this);
     generateResumeLayout->addWidget(generateResumeCheckBox);
 
-    // Resume Template
-    QLabel *resumeTemplateLabel = new QLabel(tr("Resume Template:"), resumeCoverLetterGroup);
-    resumeTemplateComboBox = new QComboBox(resumeCoverLetterGroup);
+    QLabel *resumeTemplateLabel = new QLabel(tr("Resume Template:"), this);
+    resumeTemplateComboBox = new QComboBox(this);
     resumeTemplateComboBox->addItem("og-resume-template.v1");
     resumeTemplateComboBox->addItem("og-resume-template.v2");
     // Initially disabled
     resumeTemplateComboBox->setEnabled(false);
 
-    // Put them in a row
     generateResumeLayout->addWidget(resumeTemplateLabel);
     generateResumeLayout->addWidget(resumeTemplateComboBox);
 
-    mainVLayout->addLayout(generateResumeLayout);
+    contentLayout->addLayout(generateResumeLayout);
 
     //
     // 5) Generate Cover Letter section
     //
     QHBoxLayout *generateCoverLetterLayout = new QHBoxLayout();
-    generateCoverLetterCheckBox = new QCheckBox(tr("Generate Cover Letter"), resumeCoverLetterGroup);
+
+    generateCoverLetterCheckBox = new QCheckBox(tr("Generate Cover Letter"), this);
     generateCoverLetterLayout->addWidget(generateCoverLetterCheckBox);
 
-    // Cover Letter Template
-    QLabel *coverLetterTemplateLabel = new QLabel(tr("Cover Letter Template:"), resumeCoverLetterGroup);
-    coverLetterTemplateComboBox = new QComboBox(resumeCoverLetterGroup);
+    QLabel *coverLetterTemplateLabel = new QLabel(tr("Cover Letter Template:"), this);
+    coverLetterTemplateComboBox = new QComboBox(this);
     coverLetterTemplateComboBox->addItem("og-cl-template.v1");
     coverLetterTemplateComboBox->addItem("og-cl-template.v2");
     // Initially disabled
@@ -276,18 +264,29 @@ void ScraperConfigurationUI::createResumeCoverLetterGroup()
     generateCoverLetterLayout->addWidget(coverLetterTemplateLabel);
     generateCoverLetterLayout->addWidget(coverLetterTemplateComboBox);
 
-    mainVLayout->addLayout(generateCoverLetterLayout);
+    contentLayout->addLayout(generateCoverLetterLayout);
 
+    //
     // 6) Hook up checkboxes so they enable/disable the template combos
-    connect(generateResumeCheckBox, &QCheckBox::toggled, resumeTemplateComboBox, &QComboBox::setEnabled);
-    connect(generateCoverLetterCheckBox, &QCheckBox::toggled, coverLetterTemplateComboBox, &QComboBox::setEnabled);
+    //
+    connect(generateResumeCheckBox, &QCheckBox::toggled,
+            resumeTemplateComboBox, &QComboBox::setEnabled);
 
-    // 7) Hook up the testConnectionButton to a function that tries to reach Ollama
-    connect(testConnectionButton, &QPushButton::clicked, this, &ScraperConfigurationUI::testOllamaConnection);
+    connect(generateCoverLetterCheckBox, &QCheckBox::toggled,
+            coverLetterTemplateComboBox, &QComboBox::setEnabled);
 
-    // Finally, add the group box to the main layout
-    mainLayout->addWidget(resumeCoverLetterGroup);
+    //
+    // 7) Hook up the "Test Connection" button
+    //
+    connect(testConnectionButton, &QPushButton::clicked,
+            this, &ScraperConfigurationUI::testOllamaConnection);
+
+    //
+    // 8) Finally, add our custom box to the main layout
+    //
+    mainLayout->addWidget(resumeCoverLetterBox);
 }
+
 
 void ScraperConfigurationUI::testOllamaConnection()
 {
