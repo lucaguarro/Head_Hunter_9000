@@ -234,16 +234,23 @@ void ScraperConfigurationUI::createResumeCoverLetterGroup()
     generateResumeCheckBox = new QCheckBox(tr("Generate Resume"), this);
     generateResumeLayout->addWidget(generateResumeCheckBox);
 
-    QLabel *resumeTemplateLabel = new QLabel(tr("Resume Template:"), this);
+    QHBoxLayout *generateResumeFlushLayout = new QHBoxLayout();
+    generateResumeFlushLayout->setSpacing(0);
+
+    QLabel *resumeTemplateLabel = new QLabel(tr("Resume Template: "), this);
     resumeTemplateComboBox = new QComboBox(this);
+    resumeTemplateLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    resumeTemplateComboBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
     resumeTemplateComboBox->addItem("og-resume-template.v1");
     resumeTemplateComboBox->addItem("og-resume-template.v2");
     // Initially disabled
     resumeTemplateComboBox->setEnabled(false);
 
-    generateResumeLayout->addWidget(resumeTemplateLabel);
-    generateResumeLayout->addWidget(resumeTemplateComboBox);
+    generateResumeFlushLayout->addWidget(resumeTemplateLabel);
+    generateResumeFlushLayout->addWidget(resumeTemplateComboBox);
 
+    generateResumeLayout->addLayout(generateResumeFlushLayout);
     contentLayout->addLayout(generateResumeLayout);
 
     //
@@ -254,16 +261,23 @@ void ScraperConfigurationUI::createResumeCoverLetterGroup()
     generateCoverLetterCheckBox = new QCheckBox(tr("Generate Cover Letter"), this);
     generateCoverLetterLayout->addWidget(generateCoverLetterCheckBox);
 
-    QLabel *coverLetterTemplateLabel = new QLabel(tr("Cover Letter Template:"), this);
+    QHBoxLayout *generateCoverLetterFlushLayout = new QHBoxLayout();
+    generateCoverLetterFlushLayout->setSpacing(0);
+
+    QLabel *coverLetterTemplateLabel = new QLabel(tr("Cover Letter Template: "), this);
     coverLetterTemplateComboBox = new QComboBox(this);
+    coverLetterTemplateLabel->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    coverLetterTemplateComboBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
     coverLetterTemplateComboBox->addItem("og-cl-template.v1");
     coverLetterTemplateComboBox->addItem("og-cl-template.v2");
     // Initially disabled
     coverLetterTemplateComboBox->setEnabled(false);
 
-    generateCoverLetterLayout->addWidget(coverLetterTemplateLabel);
-    generateCoverLetterLayout->addWidget(coverLetterTemplateComboBox);
+    generateCoverLetterFlushLayout->addWidget(coverLetterTemplateLabel);
+    generateCoverLetterFlushLayout->addWidget(coverLetterTemplateComboBox);
 
+    generateCoverLetterLayout->addLayout(generateCoverLetterFlushLayout);
     contentLayout->addLayout(generateCoverLetterLayout);
 
     //
