@@ -129,9 +129,12 @@ void MainWindow::onSidebarButtonClicked(QPushButton *clickedButton, const QList<
 //---------------------------------------------------------------------------------
 void MainWindow::on_ScraperConfigBtn_clicked()
 {
+    QScrollArea *scrollArea = new QScrollArea(this);
     ScraperConfigurationUI *scraperconfigurationui = new ScraperConfigurationUI(this, settings);
+    scrollArea->setWidget(scraperconfigurationui);
+    scrollArea->setWidgetResizable(true);
     connect(scraperconfigurationui, &ScraperConfigurationUI::databasePathChanged, this, &MainWindow::onDatabasePathChanged);
-    setMainWidget(scraperconfigurationui);
+    setMainWidget(scrollArea);
 }
 
 void MainWindow::onDatabasePathChanged()
