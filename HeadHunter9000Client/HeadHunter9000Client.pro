@@ -1,4 +1,4 @@
-QT       += core gui svg
+QT       += core gui svg network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets sql
 
@@ -11,36 +11,44 @@ CONFIG += c++17
 SOURCES += \
     askquestionsui.cpp \
     checkablecombobox.cpp \
+    coverlettertemplatepage.cpp \
     databasemanager.cpp \
     filtersortwidget.cpp \
     joblistingsui.cpp \
     jobpreviewwidget.cpp \
+    llmconfigpage.cpp \
     main.cpp \
     mainwindow.cpp \
     preferencesdialogui.cpp \
     processworker.cpp \
+    resumetemplatepage.cpp \
     scraperconfigurationui.cpp \
     seeallquestionsui.cpp \
     sidebarjoblistwidget.cpp \
-    starratingwidget.cpp
+    starratingwidget.cpp \
+    templatepage.cpp
 
 HEADERS += \
     askquestionsui.h \
     buttongroupbox.h \
     checkablecombobox.h \
+    coverlettertemplatepage.h \
     databasemanager.h \
     elidedlabel.h \
     filtersortwidget.h \
     job.h \
     joblistingsui.h \
     jobpreviewwidget.h \
+    llmconfigpage.h \
     mainwindow.h \
     preferencesdialogui.h \
     processworker.h \
+    resumetemplatepage.h \
     scraperconfigurationui.h \
     seeallquestionsui.h \
     sidebarjoblistwidget.h \
-    starratingwidget.h
+    starratingwidget.h \
+    templatepage.h
 
 FORMS += \
     mainwindow.ui

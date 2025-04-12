@@ -3,7 +3,7 @@
 
 #include <QDialog>
 
-class QListWidget;
+class QTreeWidget;
 class QStackedWidget;
 
 class PreferencesDialogUI : public QDialog {
@@ -13,11 +13,11 @@ public:
     explicit PreferencesDialogUI(QWidget *parent = nullptr);
 
 private:
-    QListWidget *sidePanel;
+    QTreeWidget *navigationTree;
     QStackedWidget *stackedWidget;
 
     void setupUI();
-    void createPages();
+    void setupNavigation();
 };
 
 #endif // PREFERENCESDIALOGUI_H

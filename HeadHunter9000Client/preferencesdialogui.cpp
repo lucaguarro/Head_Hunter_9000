@@ -1,53 +1,58 @@
 #include "preferencesdialogui.h"
+#include "llmconfigpage.h"
+#include "resumetemplatepage.h"
+#include "coverlettertemplatepage.h"
+
 #include <QHBoxLayout>
-#include <QVBoxLayout>
-#include <QListWidget>
+#include <QTreeWidget>
 #include <QStackedWidget>
-#include <QLabel>
+#include <QHeaderView>
 
 PreferencesDialogUI::PreferencesDialogUI(QWidget *parent)
     : QDialog(parent) {
-    setWindowTitle("Preferences");
-    resize(600, 400);
+    setWindowTitle("Preferences / Settings");
+    resize(900, 600);
     setupUI();
 }
 
 void PreferencesDialogUI::setupUI() {
-    QHBoxLayout *mainLayout = new QHBoxLayout(this);
+    QHBoxLayout *layout = new QHBoxLayout(this);
+    navigationTree = new QTreeWidget(this);
+    navigationTree->setHeaderHidden(true);
+    navigationTree->setFixedWidth(200);
 
-    sidePanel = new QListWidget(this);
-    sidePanel->addItem("General");
-    sidePanel->addItem("Appearance");
-    sidePanel->addItem("Network");
-    sidePanel->setFixedWidth(150);
+    setupNavigation();
 
     stackedWidget = new QStackedWidget(this);
+    stackedWidget->addWidget(new QWidget());               // Index 0 - Job Search Criteria
+    stackedWidget->addWidget(new QWidget());               // Index 1 - Database
+    stackedWidget->addWidget(new LLMConfigPage(this));     // Index 2 - LLM Configuration
+    stackedWidget->addWidget(new ResumeTemplatePage(this));// Index 3 - Resume Template
+    stackedWidget->addWidget(new CoverLetterTemplatePage(this)); // Index 4
 
-    createPages();
+    layout->addWidget(navigationTree);
+    layout->addWidget(stackedWidget);
 
-    connect(sidePanel, &QListWidget::currentRowChanged,
-            stackedWidget, &QStackedWidget::setCurrentIndex);
-
-    sidePanel->setCurrentRow(0);
-
-    mainLayout->addWidget(sidePanel);
-    mainLayout->addWidget(stackedWidget);
+    connect(navigationTree, &QTreeWidget::itemClicked, this, [=](QTreeWidgetItem *item){
+        stackedWidget->setCurrentIndex(item->data(0, Qt::UserRole).toInt());
+    });
 }
 
-void PreferencesDialogUI::createPages() {
-    QWidget *generalPage = new QWidget(this);
-    QVBoxLayout *generalLayout = new QVBoxLayout(generalPage);
-    generalLayout->addWidget(new QLabel("General Settings", generalPage));
+void PreferencesDialogUI::setupNavigation() {
+    QStringList topItems = {"Job Search Criteria", "Database", "AI Generated Docs"};
+    for (int i = 0; i < topItems.size(); ++i) {
+        QTreeWidgetItem *item = new QTreeWidgetItem(QStringList(topItems[i]));
+        navigationTree->addTopLevelItem(item);
 
-    QWidget *appearancePage = new QWidget(this);
-    QVBoxLayout *appearanceLayout = new QVBoxLayout(appearancePage);
-    appearanceLayout->addWidget(new QLabel("Appearance Settings", appearancePage));
-
-    QWidget *networkPage = new QWidget(this);
-    QVBoxLayout *networkLayout = new QVBoxLayout(networkPage);
-    networkLayout->addWidget(new QLabel("Network Settings", networkPage));
-
-    stackedWidget->addWidget(generalPage);
-    stackedWidget->addWidget(appearancePage);
-    stackedWidget->addWidget(networkPage);
+        if (topItems[i] == "AI Generated Docs") {
+            QStringList subItems = {"LLM Configuration", "Resume Template", "Cover Letter Template"};
+            for (int j = 0; j < subItems.size(); ++j) {
+                QTreeWidgetItem *subItem = new QTreeWidgetItem(QStringList(subItems[j]));
+                subItem->setData(0, Qt::UserRole, 2 + j); // Match stackedWidget index
+                item->addChild(subItem);
+            }
+        } else {
+            item->setData(0, Qt::UserRole, i);
+        }
+    }
 }
