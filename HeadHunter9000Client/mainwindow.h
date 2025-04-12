@@ -29,6 +29,8 @@ public:
     ~MainWindow();
 
 private slots:
+    void openPreferences();
+
     void onSidebarButtonClicked(QPushButton* clickedButton, const QList<QPushButton*>& buttons);
     void on_ScraperConfigBtn_clicked();
     void on_SeeAllQuestionsBtn_clicked();

@@ -2,12 +2,14 @@
 #include "ui_mainwindow.h"
 
 // UI classes
-#include "processworker.h"
+#include "preferencesdialogui.h"
 #include "sidebarjoblistwidget.h"
 #include "joblistingsui.h"
 #include "askquestionsui.h"
 #include "seeallquestionsui.h"
 #include "scraperconfigurationui.h"
+
+#include "processworker.h"
 
 #include <QDebug>
 #include <QProcess>
@@ -43,6 +45,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui->splitter->setStretchFactor(1, 1); // scrollArea stretches
     ui->splitter->setSizes({200, 1});
 
+    // Set-up header toolbar
+    QMenu *editMenu = menuBar()->addMenu("Edit");
+    QAction *preferencesAction = new QAction("Preferences", this);
+    editMenu->addAction(preferencesAction);
+    connect(preferencesAction, &QAction::triggered, this, &MainWindow::openPreferences);
+
     // Collect relevant sidebar buttons
     QList<QPushButton*> sidebar_buttons = {
         ui->AnswerQuestionsBtn,
@@ -67,6 +75,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Connect the jobListingRequested signal
     connect(sidebarjoblistwidget, &SidebarJobListWidget::jobListingRequested, this, &MainWindow::createJobListingsUI);
+}
+
+void MainWindow::openPreferences() {
+    PreferencesDialogUI prefDialog(this);
+    prefDialog.exec();
 }
 
 MainWindow::~MainWindow()

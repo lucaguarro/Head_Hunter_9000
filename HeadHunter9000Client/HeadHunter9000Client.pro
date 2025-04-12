@@ -17,6 +17,7 @@ SOURCES += \
     jobpreviewwidget.cpp \
     main.cpp \
     mainwindow.cpp \
+    preferencesdialogui.cpp \
     processworker.cpp \
     scraperconfigurationui.cpp \
     seeallquestionsui.cpp \
@@ -34,6 +35,7 @@ HEADERS += \
     joblistingsui.h \
     jobpreviewwidget.h \
     mainwindow.h \
+    preferencesdialogui.h \
     processworker.h \
     scraperconfigurationui.h \
     seeallquestionsui.h \
