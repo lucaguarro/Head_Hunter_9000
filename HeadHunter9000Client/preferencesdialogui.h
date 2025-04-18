@@ -1,6 +1,7 @@
 #ifndef PREFERENCESDIALOGUI_H
 #define PREFERENCESDIALOGUI_H
 
+#include <QSettings>
 #include <QDialog>
 
 class QTreeWidget;
@@ -10,11 +11,12 @@ class PreferencesDialogUI : public QDialog {
     Q_OBJECT
 
 public:
-    explicit PreferencesDialogUI(QWidget *parent = nullptr);
+    explicit PreferencesDialogUI(QWidget *parent = nullptr, QSettings *settings = nullptr);
 
 private:
     QTreeWidget *navigationTree;
     QStackedWidget *stackedWidget;
+    QSettings *settings;
 
     void setupUI();
     void setupNavigation();

@@ -8,8 +8,8 @@
 #include <QStackedWidget>
 #include <QHeaderView>
 
-PreferencesDialogUI::PreferencesDialogUI(QWidget *parent)
-    : QDialog(parent) {
+PreferencesDialogUI::PreferencesDialogUI(QWidget *parent, QSettings *settings)
+    : QDialog(parent), settings(settings) {
     setWindowTitle("Preferences / Settings");
     resize(900, 600);
     setupUI();
@@ -26,7 +26,7 @@ void PreferencesDialogUI::setupUI() {
     stackedWidget = new QStackedWidget(this);
     stackedWidget->addWidget(new QWidget());               // Index 0 - Job Search Criteria
     stackedWidget->addWidget(new QWidget());               // Index 1 - Database
-    stackedWidget->addWidget(new LLMConfigPage(this));     // Index 2 - LLM Configuration
+    stackedWidget->addWidget(new LLMConfigPage(this, settings));     // Index 2 - LLM Configuration
     stackedWidget->addWidget(new ResumeTemplatePage(this));// Index 3 - Resume Template
     stackedWidget->addWidget(new CoverLetterTemplatePage(this)); // Index 4
 

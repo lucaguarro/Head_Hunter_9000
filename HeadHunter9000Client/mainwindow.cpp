@@ -78,7 +78,7 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 void MainWindow::openPreferences() {
-    PreferencesDialogUI prefDialog(this);
+    PreferencesDialogUI prefDialog(this, settings);
     prefDialog.exec();
 }
 
