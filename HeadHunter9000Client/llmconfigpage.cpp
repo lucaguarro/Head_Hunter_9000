@@ -70,6 +70,15 @@ LLMConfigPage::LLMConfigPage(QWidget *parent, QSettings *settings)
     selectedModelBox = new QComboBox(this);
     layout->addWidget(selectedModelBox);
 
+    // Save selected model when user changes selection
+    connect(selectedModelBox, &QComboBox::currentTextChanged, this, [=](const QString &text) {
+        if (m_settings && !text.isEmpty()) {
+            m_settings->setValue("LLM_SERVER/selected_model", text);
+            m_settings->sync();
+            qDebug() << "Saved selected model:" << text;
+        }
+    });
+
     // --- Progress Bar ---
     downloadProgressBar = new QProgressBar(this);
     downloadProgressBar->setRange(0, 100); // percentage
@@ -106,6 +115,9 @@ void LLMConfigPage::saveConnection()
             QJsonArray models = rootObj["models"].toArray();
 
             modelList->clear();
+
+            // Block signals while repopulating to avoid unwanted "currentTextChanged"
+            bool oldState = selectedModelBox->blockSignals(true);
             selectedModelBox->clear();
 
             for (const QJsonValue &modelVal : models) {
@@ -114,6 +126,19 @@ void LLMConfigPage::saveConnection()
                 modelList->addItem(modelName);
                 selectedModelBox->addItem(modelName);
             }
+
+            // Restore selected model from settings, if available
+            if (m_settings) {
+                QString selectedModel = m_settings->value("LLM_SERVER/selected_model", "").toString();
+                if (!selectedModel.isEmpty()) {
+                    int index = selectedModelBox->findText(selectedModel);
+                    if (index != -1) {
+                        selectedModelBox->setCurrentIndex(index);
+                    }
+                }
+            }
+
+            selectedModelBox->blockSignals(oldState); // Restore previous block state
 
             if (m_settings) {
                 m_settings->setValue("LLM_SERVER/ollama_endpoint", endpoint);
@@ -191,8 +216,7 @@ void LLMConfigPage::pullSelectedModel()
                     connectionResultLabel->setVisible(true);
                     resultLabelTimer->start(3000);
 
-                    // 🔥 ADD THIS LINE
-                    saveConnection();  // Refresh the models list after success
+                    saveConnection(); // Refresh model list after success
                 } else if (obj.contains("total") && obj.contains("completed")) {
                     double total = obj["total"].toDouble();
                     double completed = obj["completed"].toDouble();
@@ -204,7 +228,6 @@ void LLMConfigPage::pullSelectedModel()
             }
         }
     });
-
 
     connect(reply, &QNetworkReply::finished, this, [=]() {
         disableButtons(false);
