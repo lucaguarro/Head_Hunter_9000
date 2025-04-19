@@ -3,11 +3,12 @@
 
 #include "templatepage.h"
 
-class ResumeTemplatePage : public TemplatePage {
+class ResumeTemplatePage : public TemplatePage
+{
     Q_OBJECT
 
 public:
-    explicit ResumeTemplatePage(QWidget *parent = nullptr);
+    explicit ResumeTemplatePage(QSettings *settings, QWidget *parent = nullptr);
 };
 
 #endif // RESUMETEMPLATEPAGE_H

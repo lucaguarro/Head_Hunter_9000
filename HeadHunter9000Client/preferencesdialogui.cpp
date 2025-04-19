@@ -24,11 +24,11 @@ void PreferencesDialogUI::setupUI() {
     setupNavigation();
 
     stackedWidget = new QStackedWidget(this);
-    stackedWidget->addWidget(new QWidget());               // Index 0 - Job Search Criteria
-    stackedWidget->addWidget(new QWidget());               // Index 1 - Database
-    stackedWidget->addWidget(new LLMConfigPage(this, settings));     // Index 2 - LLM Configuration
-    stackedWidget->addWidget(new ResumeTemplatePage(this));// Index 3 - Resume Template
-    stackedWidget->addWidget(new CoverLetterTemplatePage(this)); // Index 4
+    stackedWidget->addWidget(new QWidget());                               // Index 0 - Job Search Criteria
+    stackedWidget->addWidget(new QWidget());                               // Index 1 - Database
+    stackedWidget->addWidget(new LLMConfigPage(this, settings));           // Index 2 - LLM Configuration
+    stackedWidget->addWidget(new ResumeTemplatePage(settings, this));      // Index 3 - Resume Template
+    stackedWidget->addWidget(new CoverLetterTemplatePage(settings, this)); // Index 4 - Cover Letter Template
 
     layout->addWidget(navigationTree);
     layout->addWidget(stackedWidget);
@@ -37,6 +37,7 @@ void PreferencesDialogUI::setupUI() {
         stackedWidget->setCurrentIndex(item->data(0, Qt::UserRole).toInt());
     });
 }
+
 
 void PreferencesDialogUI::setupNavigation() {
     QStringList topItems = {"Job Search Criteria", "Database", "AI Generated Docs"};
