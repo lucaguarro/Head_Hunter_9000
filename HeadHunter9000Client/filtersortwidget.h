@@ -16,6 +16,8 @@ public:
     explicit FilterSortWidget(const QDateTime &minDate,
                               const QDateTime &maxDate,
                               QWidget *parent = nullptr);
+    void updateDateRange(const QDateTime &newMinDate, const QDateTime &newMaxDate);
+    void reset(const QDateTime &newMinDate, const QDateTime &newMaxDate);
 
 signals:
     void appliedFilterChanged(int appliedMode);
@@ -39,4 +41,6 @@ private:
     QCheckBox *ascendingCheck;
 
     QDateTime minDate, maxDate;
+
+    void refreshDateSlider();
 };

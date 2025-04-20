@@ -30,8 +30,11 @@ private slots:
     void applyDateCutoff(const QDateTime &cutoffDate);
     void applySort(const QString &sortField, bool ascending);
 
-private:
+public slots:
     void loadJobs();
+    void refresh();
+
+private:
     void populateList(const QList<Job> &jobs);
     void showFilterSortPopup();
 

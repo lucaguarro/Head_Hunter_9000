@@ -87,11 +87,29 @@ FilterSortWidget::FilterSortWidget(const QDateTime &minDate,
     setLayout(mainLayout);
 
     // Initialize the slider range
+    refreshDateSlider();
+    connect(scrapedDateSlider, &QSlider::valueChanged, this, &FilterSortWidget::updateSliderLabel);
+}
+
+void FilterSortWidget::updateDateRange(const QDateTime &newMinDate, const QDateTime &newMaxDate)
+{
+    minDate = newMinDate;
+    maxDate = newMaxDate;
+
+    refreshDateSlider();
+}
+
+void FilterSortWidget::refreshDateSlider()
+{
     qint64 dayDiff = minDate.daysTo(maxDate);
     dayDiff = qMax<qint64>(dayDiff, 0);
+
+    scrapedDateSlider->blockSignals(true); // prevent emitting signals temporarily
     scrapedDateSlider->setRange(0, dayDiff);
-    scrapedDateSlider->setValue(dayDiff);
-    connect(scrapedDateSlider, &QSlider::valueChanged, this, &FilterSortWidget::updateSliderLabel);
+    scrapedDateSlider->setValue(dayDiff); // default to max (latest date)
+    scrapedDateSlider->blockSignals(false);
+
+    scrapedDateLabel->setText(maxDate.toString("yyyy-MM-dd"));
 }
 
 void FilterSortWidget::updateSliderLabel(int sliderValue)
@@ -121,4 +139,29 @@ void FilterSortWidget::applyClicked()
     emit sortChanged(sortField, ascending);
 
     hide();
+}
+
+void FilterSortWidget::reset(const QDateTime &newMinDate, const QDateTime &newMaxDate)
+{
+    minDate = newMinDate;
+    maxDate = newMaxDate;
+
+    // Update the slider to the new range
+    refreshDateSlider();
+
+    // Reset UI controls to defaults
+    appliedCombo->setCurrentIndex(0);         // "All"
+    hasRatingCheck->setChecked(false);        // Not filtered by rating
+    scrapedDateSlider->setValue(scrapedDateSlider->maximum()); // Latest date
+    sortCombo->setCurrentIndex(0);            // Sort by Rating
+    ascendingCheck->setChecked(true);         // Ascending
+
+    // Update label manually
+    updateSliderLabel(scrapedDateSlider->value());
+
+    // Optionally emit signals immediately if you want to auto-refresh the filtering
+    emit appliedFilterChanged(appliedCombo->currentData().toInt());
+    emit ratingFilterChanged(hasRatingCheck->isChecked());
+    emit dateCutoffChanged(minDate.addDays(scrapedDateSlider->value()));
+    emit sortChanged(sortCombo->currentData().toString(), ascendingCheck->isChecked());
 }

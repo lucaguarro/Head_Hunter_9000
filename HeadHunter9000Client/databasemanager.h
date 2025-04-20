@@ -8,9 +8,10 @@
 #include <QList>
 #include "job.h"
 
-class DatabaseManager {
+class DatabaseManager : public QObject {
+    Q_OBJECT
 public:
-    explicit DatabaseManager(QSettings* settings);
+    explicit DatabaseManager(QSettings* settings, QObject *parent = nullptr);
 
 
     bool connectToDatabase();
@@ -27,6 +28,10 @@ public:
 
     QList<Job> getJobs();
     void updateJobPreferenceScore(int jobId, int newScore);
+
+signals:
+    void databasePathChanged(const QString &newPath);
+
 private:
     QString databasePath;
     QSqlDatabase db;

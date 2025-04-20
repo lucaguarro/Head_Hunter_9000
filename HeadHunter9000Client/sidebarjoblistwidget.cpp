@@ -9,6 +9,7 @@
 SidebarJobListWidget::SidebarJobListWidget(DatabaseManager *dbManager, QWidget *parent)
     : QWidget(parent),
     dbManager(dbManager),
+    filterSortWidget(nullptr),
     appliedMode(0),
     ratingFilterOn(false)
 {
@@ -18,68 +19,38 @@ SidebarJobListWidget::SidebarJobListWidget(DatabaseManager *dbManager, QWidget *
     jobListWidget->setResizeMode(QListWidget::Adjust);
     jobListWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-    connect(jobListWidget, &QListWidget::itemClicked, this, &SidebarJobListWidget::handleItemClick);
-    connect(jobListWidget, &QListWidget::currentRowChanged, this, &SidebarJobListWidget::handleCurrentRowChanged);
+    connect(dbManager, &DatabaseManager::databasePathChanged,
+            this, &SidebarJobListWidget::refresh);  // <-- Now call refresh()
 
-    // Load all jobs
-    loadJobs();
-
-    // Determine the oldest & newest date for the slider
-    QDateTime minDate = QDateTime::currentDateTime();
-    QDateTime maxDate = QDateTime::fromString("1970-01-01", Qt::ISODate);
-    for (const Job &job : jobList) {
-        QDateTime dt = QDateTime::fromString(job.createdAt, Qt::ISODate);
-        if (dt.isValid()) {
-            if (dt < minDate) minDate = dt;
-            if (dt > maxDate) maxDate = dt;
-        }
-    }
-    // Fallback if no valid dates
-    if (!minDate.isValid())  minDate = QDateTime::currentDateTime().addYears(-1);
-    if (!maxDate.isValid())  maxDate = QDateTime::currentDateTime();
-
-    // Create the Filter/Sort pop-up
-    filterSortWidget = new FilterSortWidget(minDate, maxDate, this);
-    filterSortWidget->hide();
-    connect(filterSortWidget, &FilterSortWidget::appliedFilterChanged,
-            this, &SidebarJobListWidget::applyAppliedFilter);
-    connect(filterSortWidget, &FilterSortWidget::ratingFilterChanged,
-            this, &SidebarJobListWidget::applyRatingFilter);
-    connect(filterSortWidget, &FilterSortWidget::dateCutoffChanged,
-            this, &SidebarJobListWidget::applyDateCutoff);
-    connect(filterSortWidget, &FilterSortWidget::sortChanged,
-            this, &SidebarJobListWidget::applySort);
-
-
-    // Default dateCutoff is the max date => show everything
-    dateCutoff = maxDate;
-
-    // Populate initially (no filters, no sort)
-    filteredJobs = jobList;
-    populateList(filteredJobs);
+    connect(jobListWidget, &QListWidget::itemClicked,
+            this, &SidebarJobListWidget::handleItemClick);
+    connect(jobListWidget, &QListWidget::currentRowChanged,
+            this, &SidebarJobListWidget::handleCurrentRowChanged);
 
     // Filter/Sort button
     filterSortButton = new QPushButton("Filter/Sort", this);
-    connect(filterSortButton, &QPushButton::clicked, this, &SidebarJobListWidget::showFilterSortPopup);
+    connect(filterSortButton, &QPushButton::clicked,
+            this, &SidebarJobListWidget::showFilterSortPopup);
 
-    // Layout
-    // ---- Create a header bar ----
+    // Header layout setup
     QHBoxLayout *headerLayout = new QHBoxLayout();
     QLabel *sidebarTitle = new QLabel("Your Jobs", this);
     sidebarTitle->setStyleSheet("font-weight: bold; font-size: 16px;");
-
-
     headerLayout->addWidget(sidebarTitle);
-    headerLayout->addStretch(); // Push the button to the right
+    headerLayout->addStretch();
     headerLayout->addWidget(filterSortButton);
 
+    // Main layout setup
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->addLayout(headerLayout); // The new header bar
+    mainLayout->addLayout(headerLayout);
     mainLayout->addWidget(jobListWidget);
     mainLayout->setContentsMargins(0, 0, 0, 0);
-
     setLayout(mainLayout);
+
+    // Perform initial load
+    refresh();
 }
+
 
 void SidebarJobListWidget::loadJobs()
 {
@@ -265,6 +236,54 @@ void SidebarJobListWidget::applySort(const QString &sortField, bool ascending)
     }
 
     // 4) Repopulate the list
+    populateList(filteredJobs);
+}
+
+void SidebarJobListWidget::refresh()
+{
+    // 1. Load all jobs from the database
+    loadJobs();
+
+    // 2. Determine the oldest & newest date for the slider
+    QDateTime minDate = QDateTime::currentDateTime();
+    QDateTime maxDate = QDateTime::fromString("1970-01-01", Qt::ISODate);
+
+    for (const Job &job : jobList) {
+        QDateTime dt = QDateTime::fromString(job.createdAt, Qt::ISODate);
+        if (dt.isValid()) {
+            if (dt < minDate) minDate = dt;
+            if (dt > maxDate) maxDate = dt;
+        }
+    }
+
+    // Fallback if no valid dates
+    if (!minDate.isValid()) minDate = QDateTime::currentDateTime().addYears(-1);
+    if (!maxDate.isValid()) maxDate = QDateTime::currentDateTime();
+
+    // 3. Create or update FilterSortWidget
+    if (!filterSortWidget) {
+        filterSortWidget = new FilterSortWidget(minDate, maxDate, this);
+        filterSortWidget->hide();
+
+        connect(filterSortWidget, &FilterSortWidget::appliedFilterChanged,
+                this, &SidebarJobListWidget::applyAppliedFilter);
+        connect(filterSortWidget, &FilterSortWidget::ratingFilterChanged,
+                this, &SidebarJobListWidget::applyRatingFilter);
+        connect(filterSortWidget, &FilterSortWidget::dateCutoffChanged,
+                this, &SidebarJobListWidget::applyDateCutoff);
+        connect(filterSortWidget, &FilterSortWidget::sortChanged,
+                this, &SidebarJobListWidget::applySort);
+    } else {
+        filterSortWidget->reset(minDate, maxDate);
+    }
+
+    // Reset filters to defaults whenever DB changes
+    appliedMode = 0;              // All
+    ratingFilterOn = false;       // Rating filter off
+    dateCutoff = maxDate;         // show all by default
+    filteredJobs = jobList;       // reset filtered list
+
+    // 4. Initially populate with the new data
     populateList(filteredJobs);
 }
 

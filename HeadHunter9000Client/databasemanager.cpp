@@ -3,8 +3,8 @@
 #include <QDebug>
 #include <QSqlError>
 
-DatabaseManager::DatabaseManager(QSettings* settings)
-    : settings(settings)
+DatabaseManager::DatabaseManager(QSettings* settings, QObject *parent)
+    : QObject(parent), settings(settings)
 {
     // databasePath = settings->value("DATABASE/db_filepath").toString();
     // connectToDatabase();
@@ -14,6 +14,8 @@ DatabaseManager::DatabaseManager(QSettings* settings)
 void DatabaseManager::setDatabasePath() {
     databasePath =  settings->value("DATABASE/db_filepath").toString();
     connectToDatabase(); // Reconnect to the database with the new path
+
+    emit databasePathChanged(databasePath);
 }
 
 bool DatabaseManager::connectToDatabase() {
